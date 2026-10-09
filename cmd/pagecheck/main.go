@@ -14,6 +14,10 @@
 // Run from the repository's root:
 //
 //	go run ./cmd/pagecheck [-chrome path] [-url http://…] [-three-dir node_modules/three] [-o dir] [-views all|front,leds,…]
+//	go run ./cmd/pagecheck -compare ../StackChan/app/assets/stack_chan_model.glb [-o dir]
+//
+// -compare only draws M5Stack's own model of the robot (in M5Stack's StackChan app) and ours side
+// by side from the same views (compare-<view>.png), to check ours against it.
 //
 // -three-dir serves three.js from a local copy (npm three@0.160.0) in place of jsDelivr, for
 // a machine that cannot reach it.
@@ -59,6 +63,7 @@ func main() {
 	siteURL := flag.String("url", "", "check this site (default: build and start this repository's site)")
 	threeDir := flag.String("three-dir", "", "serve three.js from this copy of npm three in place of jsDelivr")
 	out := flag.String("o", "", "the directory for the screenshots (default: a new temporary one)")
+	compareFlag := flag.String("compare", "", "only write M5Stack's model (this glb, e.g. ../StackChan/app/assets/stack_chan_model.glb) and ours side by side from fixed views")
 	viewsFlag := flag.String("views", "", "also screenshot these fixed views (comma-separated, or all: "+strings.Join(allViews, ",")+"; view#app with an app's LEDs)")
 	flag.Parse()
 
@@ -68,6 +73,13 @@ func main() {
 		views = nil
 	case "all":
 		views = allViews
+	}
+	if *compareFlag != "" {
+		if err := runCompare(*chromeFlag, *compareFlag, *threeDir, *out); err != nil {
+			fmt.Fprintln(os.Stderr, "pagecheck:", err)
+			os.Exit(2)
+		}
+		return
 	}
 	failed, err := run(*chromeFlag, *siteURL, *threeDir, *out, views)
 	if err != nil {
@@ -79,6 +91,24 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("pagecheck: all checks passed")
+}
+
+func runCompare(chromeFlag, glb, threeDir, out string) error {
+	chrome, err := findChrome(chromeFlag)
+	if err != nil {
+		return err
+	}
+	if out == "" {
+		if out, err = os.MkdirTemp("", "pagecheck-"); err != nil {
+			return err
+		}
+	}
+	b, err := startBrowser(chrome)
+	if err != nil {
+		return err
+	}
+	defer b.Close()
+	return compare(b, glb, threeDir, out)
 }
 
 // allViews are the page's fixed views (web/app.js: views).

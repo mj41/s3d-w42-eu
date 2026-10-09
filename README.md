@@ -69,6 +69,12 @@ round the bar a little, an unlit one the bar's milky plastic): light blue as on 
 real robot, or what an app's `leds` gives (with its sources): one `color` for all, or `each` LED
 in robot3d's `-leds` form, e.g. Focus's 4 + 4 red while focusing.
 
+**Comparing with M5Stack's model.** M5Stack's StackChan app carries its own photo-like model of
+the robot (`../StackChan/app/assets/stack_chan_model.glb`, beside this repo after `setup.sh`):
+`go run ./cmd/pagecheck -compare ../StackChan/app/assets/stack_chan_model.glb -o dir` draws it
+(left) and ours (right) from the same views, both 70.5 mm high (`compare-<view>.png`; not kept
+here: the pictures show M5Stack's model).
+
 **Comparing with photos.** `?view=front|back|left|right|head|leds|top` holds the robot at a fixed
 view (add `#app` for an app's LEDs); `go run ./cmd/pagecheck -views all -o dir` saves each.
 Before/after pairs of each change to the model's look are in `tests/visual/`. The glTF's test

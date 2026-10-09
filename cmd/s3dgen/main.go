@@ -36,7 +36,7 @@ func main() {
 		png = b
 	}
 	centre, w, h := robot3d.Screen()
-	glb, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png)
+	glb, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, robot3d.Surface)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -64,14 +64,16 @@ type primitive struct {
 type material struct {
 	Name                 string         `json:"name"`
 	PBRMetallicRoughness pbr            `json:"pbrMetallicRoughness"`
+	DoubleSided          bool           `json:"doubleSided,omitempty"`
 	Extensions           map[string]any `json:"extensions,omitempty"`
 }
 
 type pbr struct {
-	BaseColorFactor  []float64    `json:"baseColorFactor"`
-	BaseColorTexture *textureInfo `json:"baseColorTexture,omitempty"`
-	MetallicFactor   float64      `json:"metallicFactor"`
-	RoughnessFactor  float64      `json:"roughnessFactor"`
+	BaseColorFactor          []float64    `json:"baseColorFactor"`
+	BaseColorTexture         *textureInfo `json:"baseColorTexture,omitempty"`
+	MetallicRoughnessTexture *textureInfo `json:"metallicRoughnessTexture,omitempty"`
+	MetallicFactor           float64      `json:"metallicFactor"`
+	RoughnessFactor          float64      `json:"roughnessFactor"`
 }
 
 type textureInfo struct {
@@ -121,6 +123,7 @@ const (
 	glArrayBuffer  = 34962
 	glElementArray = 34963
 	glLinear       = 9729
+	glLinearMipmap = 9987 // LINEAR_MIPMAP_LINEAR
 	glClampToEdge  = 33071
 )
 
@@ -178,18 +181,24 @@ func (b *builder) child(parent, n int) {
 	b.doc.Nodes[parent].Children = append(b.doc.Nodes[parent].Children, n)
 }
 
-// primitive adds an indexed triangle list (the same position and normal merged into one vertex).
+// primitive adds an indexed triangle list (the same position, normal and UV merged into one vertex).
 func (b *builder) primitive(positions, normals []robot3d.V3, uvs [][2]float32, mat int) primitive {
-	type key struct{ p, n [3]float32 }
+	type key struct {
+		p, n [3]float32
+		uv   [2]float32
+	}
 	seen := map[key]uint32{}
 	var pos, nrm []robot3d.V3
 	var uv [][2]float32
 	idx := make([]byte, 0, 4*len(positions))
 	for i, p := range positions {
 		n := normals[i]
-		k := key{[3]float32{float32(p.X), float32(p.Y), float32(p.Z)}, [3]float32{float32(n.X), float32(n.Y), float32(n.Z)}}
+		k := key{p: [3]float32{float32(p.X), float32(p.Y), float32(p.Z)}, n: [3]float32{float32(n.X), float32(n.Y), float32(n.Z)}}
+		if uvs != nil {
+			k.uv = uvs[i]
+		}
 		j, ok := seen[k]
-		if !ok || uvs != nil {
+		if !ok {
 			j = uint32(len(pos))
 			seen[k] = j
 			pos, nrm = append(pos, p), append(nrm, n)
@@ -217,7 +226,20 @@ func (b *builder) mesh(name string, pr primitive) int {
 	return len(b.doc.Meshes) - 1
 }
 
+// texture adds a PNG as an image and a texture (sampler 0: linear, mipmapped, clamped).
+func (b *builder) texture(pngBytes []byte) int {
+	if len(b.doc.Samplers) == 0 {
+		b.doc.Samplers = []sampler{{MagFilter: glLinear, MinFilter: glLinearMipmap, WrapS: glClampToEdge, WrapT: glClampToEdge}}
+	}
+	b.doc.Images = append(b.doc.Images, gltfImage{BufferView: b.view(pngBytes, 0), MimeType: "image/png"})
+	b.doc.Textures = append(b.doc.Textures, texture{Sampler: 0, Source: len(b.doc.Images) - 1})
+	return len(b.doc.Textures) - 1
+}
+
+// material adds a material, double-sided: robot3d draws both sides of its triangles (thin
+// parts, and triangles wound either way), so one-sided culling would drop some, e.g. the back panel.
 func (b *builder) material(m material) int {
+	m.DoubleSided = true
 	b.doc.Materials = append(b.doc.Materials, m)
 	return len(b.doc.Materials) - 1
 }
@@ -246,8 +268,9 @@ func darkScreen() []byte {
 }
 
 // build gives the glTF binary of the parts: the joints as nodes, each part a node with its mesh
-// under its joint, the screen a textured quad (centre, width, height) on the head.
-func build(parts []robot3d.Part, pivot, centre robot3d.V3, w, h float64, screenPNG []byte) ([]byte, error) {
+// under its joint, the screen a textured quad (centre, width, height) on the head. With surface
+// (robot3d.Surface), the textured parts get their details as textures; nil: plain colours.
+func build(parts []robot3d.Part, pivot, centre robot3d.V3, w, h float64, screenPNG []byte, surface surfaceFunc) ([]byte, error) {
 	if len(screenPNG) == 0 {
 		screenPNG = darkScreen()
 	}
@@ -299,9 +322,30 @@ func build(parts []robot3d.Part, pivot, centre robot3d.V3, w, h float64, screenP
 		if len(p.Positions) == 0 || len(p.Positions)%3 != 0 || len(p.Normals) != len(p.Positions) {
 			return nil, fmt.Errorf("part %s: %d positions, %d normals", p.Name, len(p.Positions), len(p.Normals))
 		}
+		if surface != nil && textured[p.Name] {
+			// Each triangle on the face of the part's bounds it faces, its texels from surface.
+			a := layout(bounds(p.Positions))
+			uvs := make([][2]float32, len(p.Positions))
+			for i := 0; i < len(p.Positions); i += 3 {
+				t := [3]robot3d.V3{p.Positions[i], p.Positions[i+1], p.Positions[i+2]}
+				k := a.face(t, [3]robot3d.V3{p.Normals[i], p.Normals[i+1], p.Normals[i+2]})
+				for j := range t {
+					uvs[i+j] = a.uv(k, t[j])
+				}
+			}
+			base, rough := a.paint(p, surface)
+			mat := b.material(material{Name: p.Name, PBRMetallicRoughness: pbr{
+				BaseColorFactor: []float64{1, 1, 1, 1}, BaseColorTexture: &textureInfo{Index: b.texture(base)},
+				MetallicRoughnessTexture: &textureInfo{Index: b.texture(rough)}, RoughnessFactor: 1,
+			}})
+			if err := place(p.Name, p.Joint, b.mesh(p.Name, b.primitive(p.Positions, p.Normals, uvs, mat))); err != nil {
+				return nil, err
+			}
+			continue
+		}
 		mat := b.material(material{Name: p.Name, PBRMetallicRoughness: pbr{
 			BaseColorFactor: []float64{linear(p.Color.R), linear(p.Color.G), linear(p.Color.B), 1},
-			RoughnessFactor: 0.6,
+			RoughnessFactor: roughShell,
 		}})
 		if err := place(p.Name, p.Joint, b.mesh(p.Name, b.primitive(p.Positions, p.Normals, nil, mat))); err != nil {
 			return nil, err
@@ -309,13 +353,9 @@ func build(parts []robot3d.Part, pivot, centre robot3d.V3, w, h float64, screenP
 	}
 
 	// The screen: the picture's top left at centre - (w/2, -h/2), facing +Z, unlit.
-	img := b.view(screenPNG, 0)
-	b.doc.Images = []gltfImage{{BufferView: img, MimeType: "image/png"}}
-	b.doc.Samplers = []sampler{{MagFilter: glLinear, MinFilter: glLinear, WrapS: glClampToEdge, WrapT: glClampToEdge}}
-	b.doc.Textures = []texture{{Sampler: 0, Source: 0}}
 	b.doc.ExtensionsUsed = []string{"KHR_materials_unlit"}
 	mat := b.material(material{Name: "screen", PBRMetallicRoughness: pbr{
-		BaseColorFactor: []float64{1, 1, 1, 1}, BaseColorTexture: &textureInfo{Index: 0}, RoughnessFactor: 1,
+		BaseColorFactor: []float64{1, 1, 1, 1}, BaseColorTexture: &textureInfo{Index: b.texture(screenPNG)}, RoughnessFactor: 1,
 	}, Extensions: map[string]any{"KHR_materials_unlit": map[string]any{}}})
 	z := centre.Z + screenLift
 	tl := robot3d.V3{X: centre.X - w/2, Y: centre.Y + h/2, Z: z}

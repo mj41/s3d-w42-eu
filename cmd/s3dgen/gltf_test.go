@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"image/color"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -128,7 +130,7 @@ func near(a, b robot3d.V3, tol float64) bool { return a.Sub(b).Len() <= tol }
 func export(t *testing.T) (document, []byte) {
 	t.Helper()
 	centre, w, h := robot3d.Screen()
-	b, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, nil)
+	b, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, nil, robot3d.Surface)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +260,7 @@ func TestCommittedUpToDate(t *testing.T) {
 		t.Skip("no ../s-w42-eu-assets (setup.sh)")
 	}
 	centre, w, h := robot3d.Screen()
-	want, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png)
+	want, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, robot3d.Surface)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,5 +270,101 @@ func TestCommittedUpToDate(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Error("web/robot.glb is not what s3dgen writes: go run ./cmd/s3dgen")
+	}
+}
+
+// The textured parts show robot3d's details where robot3d draws them: at each point, the triangle
+// of the exported mesh that holds it, its UV, the texel there in the part's texture, which is
+// robot3d.Surface's colour for that point.
+func TestTextures(t *testing.T) {
+	doc, bin := export(t)
+	data := func(a int) ([]byte, accessor) {
+		acc := doc.Accessors[a]
+		v := doc.BufferViews[acc.BufferView]
+		return bin[v.ByteOffset : v.ByteOffset+v.ByteLength], acc
+	}
+	f32 := func(b []byte, o int) float64 { return float64(math.Float32frombits(binary.LittleEndian.Uint32(b[o:]))) }
+	core, _, _ := robot3d.Screen()
+	for _, c := range []struct {
+		what, part string
+		p, n       robot3d.V3
+	}{
+		{"the glass front", "core", core, robot3d.V3{Z: 1}},
+		{"the red ring", "core", robot3d.V3{X: 1.55, Y: 43.5 - 20.3, Z: 33.6}, robot3d.V3{Z: 1}},
+		{"the power button", "core", robot3d.V3{X: -27, Y: 57.5, Z: 26.25}, robot3d.V3{X: -1}},
+		{"the USB-C port", "core", robot3d.V3{X: -27, Y: 42.8, Z: 26.25}, robot3d.V3{X: -1}},
+		{"the blue port", "back-panel", robot3d.V3{X: 12.75, Y: 60.5, Z: -27.5}, robot3d.V3{Z: -1}},
+		{"the dark port", "back-panel", robot3d.V3{X: -10, Y: 60.5, Z: -27.5}, robot3d.V3{Z: -1}},
+		{"the left label's dark end", "body", robot3d.V3{X: 27.03, Y: 60, Z: 13.5}, robot3d.V3{X: 1}},
+	} {
+		want, _ := robot3d.Surface(c.part, c.p, c.n)
+		var pr primitive
+		for _, n := range doc.Nodes {
+			if n.Name == c.part {
+				pr = doc.Meshes[*n.Mesh].Primitives[0]
+			}
+		}
+		m := doc.Materials[pr.Material]
+		if !m.DoubleSided || m.PBRMetallicRoughness.BaseColorTexture == nil || m.PBRMetallicRoughness.MetallicRoughnessTexture == nil {
+			t.Fatalf("%s: material %+v", c.part, m)
+		}
+		tex := doc.Textures[m.PBRMetallicRoughness.BaseColorTexture.Index]
+		iv := doc.BufferViews[doc.Images[tex.Source].BufferView]
+		img, err := png.Decode(bytes.NewReader(bin[iv.ByteOffset : iv.ByteOffset+iv.ByteLength]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		pos, _ := data(pr.Attributes["POSITION"])
+		nrm, _ := data(pr.Attributes["NORMAL"])
+		uvs, _ := data(pr.Attributes["TEXCOORD_0"])
+		idx, ia := data(pr.Indices)
+		// The axes of the face's plane.
+		u, v := 0, 1
+		switch {
+		case c.n.X != 0:
+			u, v = 1, 2
+		case c.n.Y != 0:
+			u, v = 0, 2
+		}
+		found := false
+		for i := 0; i < ia.Count && !found; i += 3 {
+			var tri [3]robot3d.V3
+			var tuv [3][2]float64
+			facing := 0.0
+			for k := 0; k < 3; k++ {
+				j := int(binary.LittleEndian.Uint32(idx[4*(i+k):]))
+				tri[k] = robot3d.V3{X: f32(pos, 12*j), Y: f32(pos, 12*j+4), Z: f32(pos, 12*j+8)}
+				facing += robot3d.V3{X: f32(nrm, 12*j), Y: f32(nrm, 12*j+4), Z: f32(nrm, 12*j+8)}.Dot(c.n)
+				tuv[k] = [2]float64{f32(uvs, 8*j), f32(uvs, 8*j+4)}
+			}
+			if facing < 2.7 || math.Abs(tri[0].Sub(c.p).Dot(c.n)) > 0.3 {
+				continue // not on this face
+			}
+			// Barycentric coordinates in the face's plane.
+			ax := func(p robot3d.V3, i int) float64 { return [3]float64{p.X, p.Y, p.Z}[i] }
+			x0, y0 := ax(tri[0], u), ax(tri[0], v)
+			x1, y1 := ax(tri[1], u)-x0, ax(tri[1], v)-y0
+			x2, y2 := ax(tri[2], u)-x0, ax(tri[2], v)-y0
+			px, py := ax(c.p, u)-x0, ax(c.p, v)-y0
+			d := x1*y2 - x2*y1
+			if math.Abs(d) < 1e-12 {
+				continue
+			}
+			b1, b2 := (px*y2-x2*py)/d, (x1*py-px*y1)/d
+			if b1 < -1e-6 || b2 < -1e-6 || b1+b2 > 1+1e-6 {
+				continue
+			}
+			s := tuv[0][0] + b1*(tuv[1][0]-tuv[0][0]) + b2*(tuv[2][0]-tuv[0][0])
+			r := tuv[0][1] + b1*(tuv[1][1]-tuv[0][1]) + b2*(tuv[2][1]-tuv[0][1])
+			b := img.Bounds()
+			got := color.RGBAModel.Convert(img.At(int(s*float64(b.Dx())), int(r*float64(b.Dy())))).(color.RGBA)
+			if got != want {
+				t.Errorf("%s: texel %v, robot3d %v", c.what, got, want)
+			}
+			found = true
+		}
+		if !found {
+			t.Errorf("%s: no triangle of %s at %+v", c.what, c.part, c.p)
+		}
 	}
 }

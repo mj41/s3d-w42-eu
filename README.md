@@ -56,6 +56,20 @@ it prints each check, the path of a screenshot of each width (in a temporary dir
 node_modules/three` serves three.js from a local copy (npm `three@0.160.0`) where jsDelivr
 cannot be reached.
 
+**robot3d's details as textures.** `s3dgen` bakes what robot3d's renderer draws on the CoreS3,
+the main body and the back panel (the glass front and the red ring, the sensors' dots, the vents,
+the ports and the power button, the labels) into textures, from `robot3d.Surface`. That function
+is not in s-w42-eu-assets yet: it is
+[`patches/s-w42-eu-assets-robot3d-surface.patch`](patches/s-w42-eu-assets-robot3d-surface.patch),
+and `go.mod` replaces the module with `../s-w42-eu-assets` until it is merged there (then: drop
+the `replace`, `go get` the new commit, delete the patch). Meanwhile, after `setup.sh`:
+
+```bash
+git -C ../s-w42-eu-assets am ../s3d-w42-eu/patches/s-w42-eu-assets-robot3d-surface.patch
+```
+
+The site itself does not import robot3d, so its build (and the Docker image) does not need it.
+
 A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
 
 ## License

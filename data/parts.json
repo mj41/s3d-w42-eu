@@ -82,7 +82,7 @@
      0,
      1
     ],
-    "note": "under the screen, the ring as robot3d draws the CoreS3's front, taken as the camera",
+    "note": "under the screen, the ring (orange on M5Stack's render of the robot, StackChan app/assets/image1.png), as robot3d draws the CoreS3's front: the camera's lens",
     "source": {
      "repo": "s-w42-eu-assets",
      "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
@@ -211,7 +211,7 @@
      0,
      1
     ],
-    "note": "under the screen, the pair of small dots right of the ring (seen from the front) as robot3d draws the CoreS3's front, taken as the LTR-553's window",
+    "note": "under the screen, the pair of small dots right of the camera's ring (seen from the front), as robot3d draws the CoreS3's front and M5Stack's render of the robot shows it (StackChan app/assets/image1.png): the LTR-553's window",
     "source": {
      "repo": "s-w42-eu-assets",
      "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
@@ -263,7 +263,7 @@
      0,
      1
     ],
-    "note": "under the screen, the pair of small dots right of the ring (seen from the front) as robot3d draws the CoreS3's front, taken as the LTR-553's window",
+    "note": "under the screen, the pair of small dots right of the camera's ring (seen from the front), as robot3d draws the CoreS3's front and M5Stack's render of the robot shows it (StackChan app/assets/image1.png): the LTR-553's window",
     "source": {
      "repo": "s-w42-eu-assets",
      "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",

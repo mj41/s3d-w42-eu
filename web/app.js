@@ -254,10 +254,11 @@ function pose(now) {
 }
 
 // Markers: one per place, on the robot's surface: where a ray from outside along the entry's out
-// (data/parts.json) meets the robot at rest. Entries on the same part within near mm of each
-// other share one; its label is the name, or a count with the list on hover or tap. The screen's
-// entries (area screen) outline the screen. Only the selected entries of the list show.
-const near = 10;
+// (data/parts.json) meets the robot at rest. Entries at the same place (within near mm, e.g.
+// ambient light and proximity, one chip) share one; its label is the name, or a count with the
+// list on hover or tap. The screen's entries (area screen) outline the screen. Only the selected
+// entries of the list show.
+const near = 1.5;
 const markers = []; // {ids, items, obj, label, el, colour, out}
 let parts = [], apps = [], byId = new Map();
 let picked = null; // the app shown

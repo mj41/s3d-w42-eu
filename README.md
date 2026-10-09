@@ -31,7 +31,7 @@ hand after review. `tasks/` holds the tasks given to cloud sessions.
 | `data/apps/<app>.json` | what an app does with each sensor and actuator it uses, with sources |
 | `web/index.html`, `web/app.js` | the page: three.js r160 from jsDelivr (pinned), the robot turning, drag to turn, markers, an app picker |
 | `main.go` | the site: one binary, standard library only, everything embedded |
-| `tools/pagecheck.cjs` | a headless check of the page (Playwright): labels apart, panel not overflowing, a group's list on tap, at 1200, 420 and 1600 px |
+| `cmd/pagecheck` | a headless check of the page in Chrome over the DevTools protocol (standard library only) |
 
 ```bash
 ./setup.sh                 # the related repos beside this one
@@ -39,6 +39,22 @@ go run ./cmd/s3dgen        # web/robot.glb (after a change in robot3d)
 go vet ./... && go test ./...   # the sources' quotes are checked in the repos beside this one
 go run .                   # http://localhost:8080
 ```
+
+The page check needs Chrome or Chromium installed (found on `PATH`, in the usual places on macOS
+and Windows, or in Playwright's download; or give `-chrome` or `$CHROME`). From the
+repository's root:
+
+```bash
+go run ./cmd/pagecheck     # builds and starts the site on a free port, checks it at 1200 and 420 px
+```
+
+It checks that the robot loads and fills most of the view (also after a resize), that the
+markers are grouped and a tap on a group opens its list, that no labels overlap while the robot
+turns, that nothing overflows the side panel or the page, and that there are no console errors;
+it prints each check, the path of a screenshot of each width (in a temporary directory, or
+`-o dir`), and exits 1 if a check failed. `-url` checks a running site instead; `-three-dir
+node_modules/three` serves three.js from a local copy (npm `three@0.160.0`) where jsDelivr
+cannot be reached.
 
 A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
 

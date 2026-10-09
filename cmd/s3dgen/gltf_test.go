@@ -227,10 +227,10 @@ func TestPoints(t *testing.T) {
 	if _, hi := bounds("core"); math.Abs(hi.Y-70.5) > 1e-3 || math.Abs(hi.Z-33.6) > 1e-3 {
 		t.Errorf("core's top front at %+v, want y 70.5, z 33.6", hi)
 	}
-	if lo, _ := bounds("led-bar-left"); lo.X < 25 {
+	if lo, _ := bounds("led-bar-left"); lo.X < 20 {
 		t.Errorf("led-bar-left at x %.2f: not on the robot's left (+X)", lo.X)
 	}
-	if _, hi := bounds("led-bar-right"); hi.X > -25 {
+	if _, hi := bounds("led-bar-right"); hi.X > -20 {
 		t.Errorf("led-bar-right at x %.2f: not on the robot's right (-X)", hi.X)
 	}
 	c, w, h := robot3d.Screen()

@@ -35,7 +35,7 @@ stage.appendChild(labels.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(css('--panel'));
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
-scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 0.5));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd2d4d8, 0.9)); // light from below too: holes and recesses grey, not black (the owner's photos)
 const key = new THREE.DirectionalLight(0xffffff, 1.6);
 key.position.set(-0.025, 0.2, 0.045); // high above, a little to the front left: a soft shadow under the robot, as on photos (metres)
 key.castShadow = true;
@@ -62,7 +62,7 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
-// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam, for comparing with photos): the robot
+// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam, for comparing with photos): the robot
 // turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
 // (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
 const views = {
@@ -72,6 +72,8 @@ const views = {
   top: { yaw: 0, elevation: 70, zoom: 0.6, aim: 0.95 },
   photo: { yaw: -35, elevation: 22, zoom: 0.75, aim: 0.55 },
   seam: { yaw: -50, elevation: 25, zoom: 0.35, aim: 0.8 },
+  holes: { yaw: -90, elevation: 0, zoom: 0.3, aim: 0.85 },
+  topseam: { yaw: -20, elevation: 55, zoom: 0.3, aim: 0.98 },
 };
 const view = views[new URLSearchParams(location.search).get('view')] || null;
 if (view && view.elevation !== undefined) elevation = view.elevation * deg;
@@ -127,7 +129,7 @@ function withLEDs(material, bar) {
       '#include <begin_vertex>', '#include <begin_vertex>\nvRest = position;\nvRestNormal = normal;');
     const lit = bar ? `
       int k = ledAt(vRest.z, vRest.x > 0.0);
-      if (uLedOn[k] > 0.5) { diffuseColor.rgb = uLed[k] * 0.35; totalEmissiveRadiance += uLed[k] * 0.75; }` : `
+      if (uLedOn[k] > 0.5) { diffuseColor.rgb = uLed[k] * 0.35; totalEmissiveRadiance += mix(uLed[k], vec3(1.0), 0.4) * 2.2; } // the diffuser glows pale and bright (the owner's photos)` : `
       if (abs(vRestNormal.x) > 0.97 && abs(vRest.x) > 26.0) {
         float dz = max(0.0, max(uBar.x - vRest.z, vRest.z - uBar.y));
         float dy = max(0.0, max(uBar.z - vRest.y, vRest.y - uBar.w));
@@ -172,7 +174,7 @@ function fit() {
   const { r, y0, y1 } = fitBox;
   const v = Math.tan(camera.fov * deg / 2), hz = v * camera.aspect;
   target.set(0, (y0 + y1) / 2, 0);
-  const margin = 1.06;
+  const margin = 0.98; // a little closer: the turning robot's corners may touch the edge
   distance = r + margin * Math.max((y1 - y0) / 2 / v, r / hz);
   if (view && view.zoom) {
     distance *= view.zoom;
@@ -619,6 +621,10 @@ async function main() {
   robot.traverse((o) => {
     if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; }
     if (o.isMesh && o.name === 'screen') o.material.toneMapped = false; // the picture as it is
+    else if (o.isMesh && !o.name.startsWith('led-bar')) { // light bounced inside holes and recesses: a little of each part's own colour
+      o.material.emissive.set(0x3a3a3a);
+      if (o.material.map) o.material.emissiveMap = o.material.map;
+    }
   });
   lightLEDs(robot);
   addMarkers(robot, (gltf.parser.json.extras || {}).screen); // at rest, before it turns

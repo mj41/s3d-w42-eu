@@ -37,7 +37,7 @@ scene.background = new THREE.Color(css('--panel'));
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 0.5));
 const key = new THREE.DirectionalLight(0xffffff, 1.6);
-key.position.set(-0.045, 0.08, 0.055); // its shadow: a box round the robot (metres)
+key.position.set(-0.025, 0.2, 0.045); // high above, a little to the front left: a soft shadow under the robot, as on photos (metres)
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.left = key.shadow.camera.bottom = -0.07;
@@ -48,7 +48,7 @@ key.shadow.bias = -0.0005;
 key.shadow.radius = 4;
 scene.add(key);
 // The ground: only the shadow shows.
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.ShadowMaterial({ opacity: 0.18 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.ShadowMaterial({ opacity: 0.22 }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);

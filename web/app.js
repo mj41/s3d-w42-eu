@@ -15,8 +15,10 @@ const css = (name) => getComputedStyle(document.documentElement).getPropertyValu
 const deg = Math.PI / 180;
 
 // The scene: the robot in metres (robot.glb's root scales robot3d's millimetres).
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 stage.appendChild(renderer.domElement);
 const labels = new CSS2DRenderer();
 labels.domElement.style.position = 'absolute';
@@ -26,10 +28,24 @@ labels.domElement.style.zIndex = '1'; // its labels' own z-indexes stay inside i
 stage.appendChild(labels.domElement);
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(css('--panel'));
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 1.6));
 const key = new THREE.DirectionalLight(0xffffff, 1.8);
-key.position.set(-0.45, 0.8, 0.55);
+key.position.set(-0.045, 0.08, 0.055); // its shadow: a box round the robot (metres)
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.left = key.shadow.camera.bottom = -0.07;
+key.shadow.camera.right = key.shadow.camera.top = 0.07;
+key.shadow.camera.near = 0.01;
+key.shadow.camera.far = 0.3;
+key.shadow.bias = -0.0005;
+key.shadow.radius = 4;
 scene.add(key);
+// The ground: only the shadow shows.
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.ShadowMaterial({ opacity: 0.18 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
 const fill = new THREE.DirectionalLight(0xffffff, 0.6);
 fill.position.set(0.75, 0.25, 0.45);
 scene.add(fill);
@@ -44,6 +60,51 @@ let fitBox = null; // the robot's bounds at rest: {r (about the yaw axis), y0, y
 function placeCamera() {
   camera.position.set(0, target.y + distance * Math.sin(elevation), distance * Math.cos(elevation));
   camera.lookAt(target);
+}
+
+// The LEDs glow: their bars lit in the LEDs' colour, and over each of the 12 LEDs (six along each
+// bar, as robot3d places them) a soft glow that adds light, hidden where the head is in front.
+const ledDefault = '#7fd4f5'; // as on the photos of a real robot (light blue)
+const ledMaterials = [], ledGlows = [];
+const glowTexture = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,1)');
+  r.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+function setLEDs(hex) {
+  const c = new THREE.Color(hex);
+  for (const m of ledMaterials) { m.color.copy(c); m.emissive.copy(c); }
+  for (const g of ledGlows) g.material.color.copy(c);
+}
+function lightLEDs(robot) {
+  for (const name of ['led-bar-left', 'led-bar-right']) {
+    const bar = robot.getObjectByName(name);
+    if (!bar) continue;
+    const material = new THREE.MeshStandardMaterial({ emissiveIntensity: 1.4, roughness: 0.4 });
+    bar.material = material;
+    ledMaterials.push(material);
+    bar.geometry.computeBoundingBox();
+    const { min, max } = bar.geometry.boundingBox; // millimetres, the bar along Z
+    const out = Math.sign(min.x + max.x) * 0.8; // a little outside the bar
+    for (let k = 0; k < 6; k++) {
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTexture, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85,
+      }));
+      glow.position.set((min.x + max.x) / 2 + out, max.y + 0.3, max.z - (k + 0.5) * (max.z - min.z) / 6);
+      glow.scale.set(11, 11, 1);
+      glow.renderOrder = 5;
+      bar.add(glow);
+      ledGlows.push(glow);
+    }
+  }
+  setLEDs(ledDefault);
 }
 
 function resize() {
@@ -297,6 +358,12 @@ function render() {
     const h = document.createElement('h2'); h.textContent = picked.name;
     const about = document.createElement('p'); about.className = 'about'; about.textContent = picked.about;
     panel.append(h, about, sources(picked.sources));
+    if (picked.leds) {
+      const l = document.createElement('p'); l.className = 'about';
+      const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = picked.leds.color;
+      l.append(sw, 'LEDs: ' + picked.leds.does);
+      panel.append(l, sources(picked.leds.sources));
+    }
     const ul = document.createElement('ul'); ul.className = 'items';
     for (const u of picked.uses) ul.append(item(byId.get(u.part), u.does, u.sources));
     panel.append(ul);
@@ -314,6 +381,7 @@ function render() {
     p.textContent = 'Not marked on the model (the docs do not say where): ' + unplaced.map((p) => p.name).join(', ') + '.';
     panel.append(p);
   }
+  setLEDs(picked && picked.leds ? picked.leds.color : ledDefault);
   updateMarkers();
   if (open) openPop(open, pinned);
 }
@@ -352,6 +420,8 @@ async function main() {
   apps = appsDoc.apps;
   for (const a of apps) appSelect.add(new Option(a.name, a.id));
   const robot = gltf.scene;
+  robot.traverse((o) => { if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; } });
+  lightLEDs(robot);
   turntable.add(robot);
   yawNode = robot.getObjectByName('yaw');
   headNode = robot.getObjectByName('head');

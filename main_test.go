@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -130,6 +131,14 @@ func TestApps(t *testing.T) {
 		for _, s := range a.Sources {
 			checkSource(t, a.ID, s)
 		}
+		if l := a.LEDs; l != nil {
+			if !regexp.MustCompile(`^#[0-9a-f]{6}$`).MatchString(l.Color) || l.Does == "" || len(l.Sources) == 0 {
+				t.Errorf("%s: leds %+v: a #rrggbb colour, what it shows and a source are needed", a.ID, l)
+			}
+			for _, s := range l.Sources {
+				checkSource(t, a.ID+" leds", s)
+			}
+		}
 		used := map[string]bool{}
 		for _, u := range a.Uses {
 			if !ids[u.Part] {
@@ -167,6 +176,9 @@ func TestSourcesQuoted(t *testing.T) {
 	}
 	for _, a := range apps {
 		all = append(all, a.Sources...)
+		if a.LEDs != nil {
+			all = append(all, a.LEDs.Sources...)
+		}
 		for _, u := range a.Uses {
 			all = append(all, u.Sources...)
 		}

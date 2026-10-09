@@ -154,8 +154,8 @@ func TestPartsPlaced(t *testing.T) {
 	}
 	at := world(doc, nil)
 	parts := robot3d.Parts()
-	if len(parts) != 8 {
-		t.Errorf("robot3d has %d parts, want 8", len(parts))
+	if len(parts) != 9 {
+		t.Errorf("robot3d has %d parts, want 9", len(parts))
 	}
 	for _, p := range parts {
 		n, ok := byName[p.Name]

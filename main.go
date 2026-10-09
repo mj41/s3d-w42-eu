@@ -69,6 +69,13 @@ type Use struct {
 	Sources []Source `json:"sources"`
 }
 
+// LEDs is the colour an app's LEDs show on the page (#rrggbb), and why.
+type LEDs struct {
+	Color   string   `json:"color"`
+	Does    string   `json:"does"`
+	Sources []Source `json:"sources"`
+}
+
 // App is data/apps/<id>.json.
 type App struct {
 	ID      string   `json:"id"`
@@ -77,6 +84,7 @@ type App struct {
 	Repo    string   `json:"repo"`
 	Web     string   `json:"web,omitempty"`
 	Sources []Source `json:"sources"`
+	LEDs    *LEDs    `json:"leds,omitempty"` // nil: the page's default
 	Uses    []Use    `json:"uses"`
 }
 

@@ -20,6 +20,26 @@
    "quote": "{\"id\": \"pet\", \"name\": \"Pet\""
   }
  ],
+ "leds": {
+  "color": "#ffb347",
+  "does": "Warm, the colour of the pet's mood (here: happy), as the assets' picture of the pet shows it.",
+  "sources": [
+   {
+    "repo": "s-w42-eu-pet",
+    "ref": "455eb20bca2b5175af5fe87bfd0ff2c32b7deb62",
+    "path": "readme.md",
+    "line": 3,
+    "quote": "its LEDs warm"
+   },
+   {
+    "repo": "s-w42-eu-assets",
+    "ref": "00508e664a0d435149b514e3f8b339a3e7aa6657",
+    "path": "renders.json",
+    "line": 11,
+    "quote": "\"leds\": \"#ffb347*12\""
+   }
+  ]
+ },
  "uses": [
   {
    "part": "head-touch",

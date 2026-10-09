@@ -58,17 +58,14 @@ cannot be reached.
 
 **robot3d's details as textures.** `s3dgen` bakes what robot3d's renderer draws on the CoreS3,
 the main body and the back panel (the glass front and the red ring, the sensors' dots, the vents,
-the ports and the power button, the labels) into textures, from `robot3d.Surface`. That function
-is not in s-w42-eu-assets yet: it is
-[`patches/s-w42-eu-assets-robot3d-surface.patch`](patches/s-w42-eu-assets-robot3d-surface.patch),
-and `go.mod` replaces the module with `../s-w42-eu-assets` until it is merged there (then: drop
-the `replace`, `go get` the new commit, delete the patch). Meanwhile, after `setup.sh`:
+the ports and the power button, the labels) into textures, from `robot3d.Surface`. `go.mod` pins
+s-w42-eu-assets at the commit that has it (branch `claude/robot3d-interior` there, with the inside of
+the head as on the photos: the servo body's top cover and the black pitch servo); once that is in
+its `main`, `go get` the merge.
 
-```bash
-git -C ../s-w42-eu-assets am ../s3d-w42-eu/patches/s-w42-eu-assets-robot3d-surface.patch
-```
-
-The site itself does not import robot3d, so its build (and the Docker image) does not need it.
+**The page's light.** The robot casts a soft shadow on the ground, and its LEDs glow (the bars lit
+and a soft glow over each of the 12 LEDs): light blue as on the photos of a real robot, or the
+colour an app's `leds` gives (with its sources), e.g. Focus's red while focusing.
 
 A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
 

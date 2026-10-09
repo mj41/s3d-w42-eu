@@ -19,6 +19,26 @@
    "quote": "{\"id\": \"focus\", \"name\": \"Focus\""
   }
  ],
+ "leds": {
+  "color": "#e5533d",
+  "does": "Red while focusing: the time left as a shrinking bar, as the assets' picture of Focus shows it.",
+  "sources": [
+   {
+    "repo": "s-w42-eu-focus",
+    "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+    "path": "readme.md",
+    "line": 41,
+    "quote": "red while focusing"
+   },
+   {
+    "repo": "s-w42-eu-assets",
+    "ref": "00508e664a0d435149b514e3f8b339a3e7aa6657",
+    "path": "renders.json",
+    "line": 29,
+    "quote": "\"leds\": \"#e5533d,#e5533d,#e5533d,#e5533d,,,,,#e5533d"
+   }
+  ]
+ },
  "uses": [
   {
    "part": "display",

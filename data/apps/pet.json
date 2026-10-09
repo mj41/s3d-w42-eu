@@ -13,10 +13,10 @@
    "quote": "A Tamagotchi for [Stackchan]"
   },
   {
-   "repo": "s-w42-eu-manager",
-   "ref": "40ef4445ea5aa8a26728466c6c45b79dc837d215",
-   "path": "README.md",
-   "line": 118,
+   "repo": "s-w42-eu-pet",
+   "ref": "347351c4f93cd3a5752144c84dfad19c297df2a5",
+   "path": "readme.md",
+   "line": 161,
    "quote": "{\"id\": \"pet\", \"name\": \"Pet\""
   }
  ],

@@ -356,17 +356,17 @@
    "where": {
     "part": "top-board",
     "offset": [
-     3.25,
+     0.3,
      70.2,
-     15.4
+     17.6
     ],
-    "how": "exact",
+    "how": "near",
     "out": [
      0,
      1,
      0
     ],
-    "note": "on the head's top behind the CoreS3, the window by the screw (M5Stack's picture: IR Tx / Rx)",
+    "note": "on the head's top behind the CoreS3, the small dot at the front of the middle tab (M5Stack's photos: IR Tx / Rx)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "IR Tx / Rx"
@@ -806,19 +806,19 @@
     }
    ],
    "where": {
-    "part": "top-board",
+    "part": "body",
     "offset": [
-     3.25,
-     70.2,
-     15.4
+     0.3,
+     70.5,
+     14.5
     ],
-    "how": "exact",
+    "how": "near",
     "out": [
      0,
      1,
      0
     ],
-    "note": "on the head's top behind the CoreS3, the window by the screw (M5Stack's picture: IR Tx / Rx)",
+    "note": "on the head's top behind the CoreS3, in the round hole of the middle tab (M5Stack's photos: IR Tx / Rx)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "IR Tx / Rx"

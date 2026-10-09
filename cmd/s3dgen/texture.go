@@ -15,7 +15,7 @@ type surfaceFunc func(part string, p, n robot3d.V3) (color.RGBA, bool)
 
 // textured are the parts whose details robot3d draws (the glass front, the ring and the dots, the
 // vents, the ports, the button, the labels, the back panel): baked into textures.
-var textured = map[string]bool{"core": true, "body": true, "back-panel": true}
+var textured = map[string]bool{"core": true, "body": true, "back-panel": true, "top-board": true}
 
 const (
 	texelsPerMM = 8 // a vent hole (1 mm) is 8 texels across

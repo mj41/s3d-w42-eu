@@ -31,6 +31,12 @@ func load(t *testing.T) (Parts, []App) {
 
 func checkSource(t *testing.T, what string, s Source) {
 	t.Helper()
+	if s.URL != "" {
+		if !strings.HasPrefix(s.URL, "https://docs.m5stack.com/") || s.Repo != "" || s.Quote == "" {
+			t.Errorf("%s: a docs source is an M5Stack docs page and a quote: %+v", what, s)
+		}
+		return
+	}
 	if s.Repo == "" || len(s.Ref) != 40 || s.Path == "" || s.Line < 1 || s.Quote == "" {
 		t.Errorf("%s: incomplete source %+v", what, s)
 	}
@@ -219,6 +225,9 @@ func TestSourcesQuoted(t *testing.T) {
 	cache := map[string][]string{}
 	checked := 0
 	for _, s := range all {
+		if s.URL != "" { // a docs page: not in a repo
+			continue
+		}
 		dir := filepath.Join("..", s.Repo)
 		if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
 			continue

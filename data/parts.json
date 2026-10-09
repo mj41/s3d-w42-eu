@@ -1,5 +1,5 @@
 {
- "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own).",
+ "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own). A where's source may be M5Stack's annotated picture of the robot (StackChan docs): its label quoted.",
  "parts": [
   {
    "id": "touch-screen",
@@ -76,19 +76,16 @@
      23.2,
      33.6
     ],
-    "how": "near",
+    "how": "exact",
     "out": [
      0,
      0,
      1
     ],
-    "note": "under the screen, the ring (orange on M5Stack's render of the robot, StackChan app/assets/image1.png), as robot3d draws the CoreS3's front: the camera's lens",
+    "note": "under the screen, the ring (M5Stack's picture: GC0308 @0.3 megapixels; the ring as robot3d draws it)",
     "source": {
-     "repo": "s-w42-eu-assets",
-     "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
-     "path": "robot3d/shade.go",
-     "line": 112,
-     "quote": "const y = -27 + 6.7"
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "GC0308"
     }
    }
   },
@@ -113,7 +110,26 @@
      "line": 135,
      "quote": "| Microphone | a FreeRTOS task reads all codec input channels at 24 kHz"
     }
-   ]
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     13.5,
+     23.2,
+     33.6
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     0,
+     1
+    ],
+    "note": "under the screen, the two outer dots (M5Stack's picture: DUAL MIC); marked at the one on the robot's left",
+    "source": {
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "DUAL MIC"
+    }
+   }
   },
   {
    "id": "imu",
@@ -205,19 +221,16 @@
      23.2,
      33.6
     ],
-    "how": "near",
+    "how": "exact",
     "out": [
      0,
      0,
      1
     ],
-    "note": "under the screen, the pair of small dots right of the camera's ring (seen from the front), as robot3d draws the CoreS3's front and M5Stack's render of the robot shows it (StackChan app/assets/image1.png): the LTR-553's window",
+    "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
     "source": {
-     "repo": "s-w42-eu-assets",
-     "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
-     "path": "robot3d/shade.go",
-     "line": 119,
-     "quote": "{5.5, 0.3}, {7.5, 0.3}"
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "LTR-553ALS-WA"
     }
    }
   },
@@ -257,19 +270,16 @@
      23.2,
      33.6
     ],
-    "how": "near",
+    "how": "exact",
     "out": [
      0,
      0,
      1
     ],
-    "note": "under the screen, the pair of small dots right of the camera's ring (seen from the front), as robot3d draws the CoreS3's front and M5Stack's render of the robot shows it (StackChan app/assets/image1.png): the LTR-553's window",
+    "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
     "source": {
-     "repo": "s-w42-eu-assets",
-     "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
-     "path": "robot3d/shade.go",
-     "line": 119,
-     "quote": "{5.5, 0.3}, {7.5, 0.3}"
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "LTR-553ALS-WA"
     }
    }
   },
@@ -287,7 +297,26 @@
      "line": 24,
      "quote": "| Head touch panel, 3 zones | Si12T (0x68)"
     }
-   ]
+   ],
+   "where": {
+    "part": "top-board",
+    "offset": [
+     -8,
+     70.2,
+     15.3
+    ],
+    "how": "near",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "note": "on the head's top behind the CoreS3 (M5Stack's picture: TOUCH PADS x 3)",
+    "source": {
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "TOUCH PADS x 3"
+    }
+   }
   },
   {
    "id": "servo-feedback",
@@ -323,7 +352,26 @@
      "line": 26,
      "quote": "| IR receiver | IRM56384 on the Touch board"
     }
-   ]
+   ],
+   "where": {
+    "part": "top-board",
+    "offset": [
+     3.25,
+     70.2,
+     15.4
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "note": "on the head's top behind the CoreS3, the window by the screw (M5Stack's picture: IR Tx / Rx)",
+    "source": {
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "IR Tx / Rx"
+    }
+   }
   },
   {
    "id": "nfc",
@@ -362,7 +410,26 @@
      "line": 28,
      "quote": "| Battery (PMU) | AXP2101 (0x34)"
     }
-   ]
+   ],
+   "where": {
+    "part": "servo",
+    "offset": [
+     0,
+     25,
+     -20
+    ],
+    "how": "near",
+    "out": [
+     0,
+     0,
+     -1
+    ],
+    "note": "in the back, under the head's board (M5Stack's picture of the open back: 550 mAh BATTERY)",
+    "source": {
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "550 mAh BATTERY"
+    }
+   }
   },
   {
    "id": "battery-monitor",
@@ -739,25 +806,22 @@
     }
    ],
    "where": {
-    "part": "core",
+    "part": "top-board",
     "offset": [
-     0,
-     70.5,
-     25.85
+     3.25,
+     70.2,
+     15.4
     ],
-    "how": "near",
+    "how": "exact",
     "out": [
      0,
      1,
      0
     ],
-    "note": "on top of the robot near the display unit (HARDWARE.md line 44): marked on the CoreS3's top; the exact place is not in the docs",
+    "note": "on the head's top behind the CoreS3, the window by the screw (M5Stack's picture: IR Tx / Rx)",
     "source": {
-     "repo": "s-w42-eu-assets",
-     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
-     "path": "robot3d/mesh.go",
-     "line": 29,
-     "quote": "var coreCentre"
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "IR Tx / Rx"
     }
    }
   },

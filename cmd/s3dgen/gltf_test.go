@@ -171,8 +171,8 @@ func TestPartsPlaced(t *testing.T) {
 	}
 	at := world(doc, nil)
 	parts := robot3d.Parts()
-	if len(parts) != 9 {
-		t.Errorf("robot3d has %d parts, want 9", len(parts))
+	if len(parts) != 10 {
+		t.Errorf("robot3d has %d parts, want 10", len(parts))
 	}
 	for _, p := range parts {
 		n, ok := byName[p.Name]
@@ -392,7 +392,7 @@ func TestTextures(t *testing.T) {
 // surface); it must not grow. All of robot3d's parts are closed now.
 var openEdgesMax = map[string]int{
 	"plate": 0, "servo": 0, "servo-cover": 0, "pitch-servo": 0, "body": 0, "core": 0,
-	"led-bar-left": 0, "led-bar-right": 0, "back-panel": 0,
+	"led-bar-left": 0, "led-bar-right": 0, "back-panel": 0, "top-board": 0,
 }
 
 // The exported parts have no holes: per part, its open edges (counted on the vertices at 0.1 µm)

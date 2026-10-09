@@ -429,7 +429,7 @@ function spread() {
     for (let moved = true; moved;) { // until it is clear of every placed label
       moved = false;
       for (const p of placed) {
-        if (x < p.x + p.wd && p.x < x + l.wd && y < p.y + p.ht + 2 && p.y < y + l.ht) { y = p.y + p.ht + 2; moved = true; }
+        if (x < p.x + p.wd + 2 && p.x < x + l.wd + 2 && y < p.y + p.ht + 2 && p.y < y + l.ht + 2) { y = p.y + p.ht + 2; moved = true; }
       }
     }
     l.m.el.style.transform = `translate(${Math.round(dx)}px, ${Math.round(y - l.y)}px)`;
@@ -459,8 +459,8 @@ function focus(p, fromStage = false) {
 // entry with a checkbox (show it on the robot), All checks or clears the list.
 const sourceLink = (s) => {
   const a = document.createElement('a');
-  a.href = `https://github.com/mj41/${s.repo}/blob/${s.ref}/${s.path}#L${s.line}`;
-  a.textContent = `${s.repo}/${s.path}:${s.line}`;
+  a.href = s.url || `https://github.com/mj41/${s.repo}/blob/${s.ref}/${s.path}#L${s.line}`;
+  a.textContent = s.url ? `M5Stack's docs: "${s.quote}"` : `${s.repo}/${s.path}:${s.line}`;
   a.target = '_blank'; a.rel = 'noopener';
   return a;
 };
@@ -501,6 +501,7 @@ function item(p, does, srcs) {
   const where = p.with ? 'a feature of ' + p.with.map((w) => byId.get(w).name).join(' and ')
     : p.where ? p.where.note : 'where: not in the docs';
   meta.textContent = picked ? (p.with || !p.where ? where : '') : p.chip + ' · ' + where;
+  if (meta.textContent && p.where && !picked) { meta.append(' · '); meta.append(sourceLink(p.where.source)); }
   if (meta.textContent) body.append(meta);
   body.append(sources(srcs));
   li.append(cb, body);

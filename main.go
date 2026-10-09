@@ -27,11 +27,15 @@ var files embed.FS
 
 // Source is where an entry is described: a line of a file in one of the related repos
 // (github.com/mj41/<repo>, at commit ref); quote is a piece of that line.
+//
+// Or a page of M5Stack's docs (url, under https://docs.m5stack.com/), e.g. the annotated picture
+// of the robot there; quote is what it says (a label on the picture).
 type Source struct {
-	Repo  string `json:"repo"`
-	Ref   string `json:"ref"`
-	Path  string `json:"path"`
-	Line  int    `json:"line"`
+	Repo  string `json:"repo,omitempty"`
+	Ref   string `json:"ref,omitempty"`
+	Path  string `json:"path,omitempty"`
+	Line  int    `json:"line,omitempty"`
+	URL   string `json:"url,omitempty"`
 	Quote string `json:"quote"`
 }
 

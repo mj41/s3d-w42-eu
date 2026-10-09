@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stackchan in 3D</title>
+<meta name="description" content="The Stackchan robot in 3D: its sensors and actuators, and what each app does with them.">
+<style>
+:root {
+  --bg: #f4f5f7; --panel: #ffffff; --ink: #1d1f23; --muted: #5d636b; --line: #dde0e4;
+  --sensor: #1f77d0; --actuator: #d0611f; --dim: #9aa0a8; --accent: #0f8a5f;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #15171a; --panel: #1d2024; --ink: #e8eaed; --muted: #a0a6ae; --line: #30343a;
+    --sensor: #5aa7f0; --actuator: #f08a4b; --dim: #6b7178; --accent: #3ccf95; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { padding: 14px 16px 6px; }
+h1 { margin: 0; font-size: 1.3rem; }
+header p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; padding: 8px 16px 16px; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+#stage { position: relative; min-height: 420px; height: calc(100vh - 110px); border-radius: 12px;
+  overflow: hidden; background: var(--panel); border: 1px solid var(--line); touch-action: pan-y; cursor: grab; }
+@media (max-width: 860px) { #stage { height: 62vh; min-height: 320px; } }
+#stage.dragging { cursor: grabbing; }
+#stage canvas { display: block; }
+#status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+#hint { position: absolute; left: 10px; bottom: 8px; font-size: .8rem; color: var(--muted); pointer-events: none; }
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  overflow: auto; max-height: calc(100vh - 110px); }
+@media (max-width: 860px) { aside { max-height: none; } }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.controls label { display: flex; align-items: center; gap: 6px; }
+select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+h2 { font-size: 1rem; margin: 12px 0 4px; }
+.about { color: var(--muted); margin: 4px 0 8px; font-size: .92rem; }
+ul.items { list-style: none; margin: 0; padding: 0; }
+ul.items li { padding: 7px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+ul.items li:last-child { border-bottom: 0; }
+ul.items li.active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.name { font-weight: 600; }
+.kind { display: inline-block; font-size: .72rem; padding: 0 6px; border-radius: 8px; margin-left: 6px; color: #fff; vertical-align: 1px; }
+.kind.sensor { background: var(--sensor); } .kind.actuator { background: var(--actuator); }
+.does { margin: 2px 0; }
+.meta, .src { font-size: .8rem; color: var(--muted); }
+.src a { color: inherit; }
+.unplaced { font-size: .8rem; color: var(--muted); }
+.label { font-size: 11px; line-height: 1.2; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
+  background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); color: var(--ink);
+  margin-left: 8px; pointer-events: none; transition: opacity .2s; }
+.label.flash { animation: flash .8s; }
+@keyframes flash { from { background: var(--accent); color: #fff; } }
+.label.used { border-color: var(--accent); font-weight: 600; }
+.label.dimmed { opacity: .35; }
+.label.behind { opacity: .2; }
+footer { padding: 0 16px 16px; color: var(--muted); font-size: .8rem; }
+footer a { color: inherit; }
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header>
+  <h1>Stackchan in 3D</h1>
+  <p>The robot, its sensors and actuators, and what each app does with them. Drag to turn it.</p>
+</header>
+<main>
+  <div id="stage"><div id="status">Loading the robot…</div><div id="hint">drag to turn</div></div>
+  <aside>
+    <div class="controls">
+      <label><input type="checkbox" id="markers" checked> Sensors and actuators</label>
+      <label>App <select id="app"><option value="">— none —</option></select></label>
+    </div>
+    <div id="panel"></div>
+  </aside>
+</main>
+<footer>
+  The model: <a href="https://github.com/mj41/s-w42-eu-assets">robot3d</a> (M5Stack's StackChan structure, MIT).
+  The parts: the <a href="https://github.com/mj41/StackChan/tree/embody-mj41/firmware/main/apps/app_embody_mode">Embody Mode firmware</a>'s docs.
+  Source: <a href="https://github.com/mj41/s3d-w42-eu">s3d-w42-eu</a>.
+</footer>
+</body>
+</html>

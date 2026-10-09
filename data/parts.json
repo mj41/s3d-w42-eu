@@ -1,0 +1,733 @@
+{
+ "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is.",
+ "parts": [
+  {
+   "id": "touch-screen",
+   "name": "Touch screen",
+   "kind": "sensor",
+   "chip": "FT6336U",
+   "does": "Two fingers on the screen: taps with x/y, double tap, long press, touch_down/touch_up per finger, and a 50 Hz raw stream of both fingers while a browser asks.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 18,
+     "quote": "| Touch screen | FT6336U (0x38), 2 points"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 143,
+     "quote": "| Touch | the board's FT6336 driver reads both points"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     44.5,
+     33.6
+    ],
+    "how": "exact",
+    "note": "the screen's centre on the CoreS3's front",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/export.go",
+     "line": 22,
+     "quote": "func Screen()"
+    }
+   }
+  },
+  {
+   "id": "camera",
+   "name": "Camera",
+   "kind": "sensor",
+   "chip": "GC0308",
+   "does": "Live JPEG video at 320x240 (5 fps) or 640x480 (about 2.3 fps), 640x480 snapshots, mirror/flip, raw sensor registers; refused while the camera and microphone are off on the robot.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 19,
+     "quote": "| Camera | GC0308 (0x21), up to 640x480"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 67,
+     "quote": "**Camera and microphone, set on the robot:**"
+    }
+   ]
+  },
+  {
+   "id": "microphones",
+   "name": "Microphones",
+   "kind": "sensor",
+   "chip": "ES7210 codec",
+   "does": "Two channels at 24 kHz sent raw: channel 1 the microphone, channel 0 the speaker reference (for echo cancellation).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 20,
+     "quote": "| Microphones | 2x, ES7210 codec (0x40)"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 135,
+     "quote": "| Microphone | a FreeRTOS task reads all codec input channels at 24 kHz"
+    }
+   ]
+  },
+  {
+   "id": "imu",
+   "name": "Accelerometer and gyroscope",
+   "kind": "sensor",
+   "chip": "BMI270",
+   "does": "Acceleration per axis (g) and rotation rate (°/s) in telemetry, the shake event, and a raw 100 Hz stream while a browser asks; it sits in the CoreS3, so it tilts with the head.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 21,
+     "quote": "| Accelerometer + gyroscope | BMI270 (0x69)"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 136,
+     "quote": "| IMU stream | `imu_stream {\"on\"}`"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     43.5,
+     25.85
+    ],
+    "how": "inside",
+    "note": "the IMU sits in the CoreS3 (HARDWARE.md line 21): somewhere in the CoreS3 (marked at its centre)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 29,
+     "quote": "var coreCentre"
+    }
+   }
+  },
+  {
+   "id": "magnetometer",
+   "name": "Magnetometer (compass)",
+   "kind": "sensor",
+   "chip": "BMM150",
+   "does": "The magnetic field per axis (µT, compensated, and raw counts) at 10 Hz; a compass needs calibration (the speaker's and servos' magnets).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 22,
+     "quote": "| Magnetometer (compass) | BMM150 (0x10) on the BMI270's AUX I2C"
+    }
+   ]
+  },
+  {
+   "id": "light",
+   "name": "Ambient light",
+   "kind": "sensor",
+   "chip": "LTR-553ALS",
+   "does": "The room's light in lux; auto-brightness sets the backlight from it (on by default).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 23,
+     "quote": "| Proximity + ambient light | LTR-553ALS-WA (0x23)"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 139,
+     "quote": "(LTR-553ALS in the CoreS3, 0x23)"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     43.5,
+     25.85
+    ],
+    "how": "inside",
+    "note": "the LTR-553ALS is in the CoreS3 (README.md line 139): somewhere in the CoreS3 (marked at its centre)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 29,
+     "quote": "var coreCentre"
+    }
+   }
+  },
+  {
+   "id": "proximity",
+   "name": "Proximity",
+   "kind": "sensor",
+   "chip": "LTR-553ALS",
+   "does": "Something near: proximity counts (0–2047), proximity_near/proximity_far events; an approach wakes the screen. Its IR LED next to the camera pulses about 10 times a second.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 23,
+     "quote": "| Proximity + ambient light | LTR-553ALS-WA (0x23)"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 139,
+     "quote": "(LTR-553ALS in the CoreS3, 0x23)"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "e11a0b7bde9503a78d1b36b809287883f42a7fee",
+     "path": "readme.md",
+     "line": 303,
+     "quote": "| `proximity` | `{\"on\": bool}`"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     43.5,
+     25.85
+    ],
+    "how": "inside",
+    "note": "the LTR-553ALS is in the CoreS3 (README.md line 139): somewhere in the CoreS3 (marked at its centre)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 29,
+     "quote": "var coreCentre"
+    }
+   }
+  },
+  {
+   "id": "head-touch",
+   "name": "Head touch panel",
+   "kind": "sensor",
+   "chip": "Si12T",
+   "does": "Three zones on the head: head_press with each zone's intensity (0–3), head_release with its duration, swipe forward/back; any of them wakes the screen.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 24,
+     "quote": "| Head touch panel, 3 zones | Si12T (0x68)"
+    }
+   ]
+  },
+  {
+   "id": "servo-feedback",
+   "name": "Servo feedback",
+   "kind": "sensor",
+   "chip": "2x Feetech SCS0009",
+   "does": "Per servo: angle, load (%), temperature, supply voltage, raw position, speed and current, moving.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 25,
+     "quote": "| Servo feedback | 2x Feetech SCS0009 (serial bus)"
+    }
+   ],
+   "where": {
+    "part": "servo",
+    "offset": [
+     0,
+     8.5,
+     0
+    ],
+    "how": "joint",
+    "note": "the two head servos; marked at the yaw joint (the pitch servo is at the pitch joint)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 80,
+     "quote": "StackChan-ServoBody.stl"
+    }
+   }
+  },
+  {
+   "id": "ir-receiver",
+   "name": "IR receiver",
+   "kind": "sensor",
+   "chip": "IRM56384",
+   "does": "Infrared remote codes: ir_received with the raw timings, NEC decoded.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 26,
+     "quote": "| IR receiver | IRM56384 on the Touch board"
+    }
+   ]
+  },
+  {
+   "id": "nfc",
+   "name": "NFC reader",
+   "kind": "sensor",
+   "chip": "ST25R3916",
+   "does": "NFC tags held to the robot: nfc_tag with UID, type and the first NDEF record (URI or text) of Type 2 tags, nfc_removed; polled twice a second.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 27,
+     "quote": "| NFC reader | ST25R3916 (0x50), IRQ not wired"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 147,
+     "quote": "| NFC | `hal/drivers/ST25R3916`"
+    }
+   ]
+  },
+  {
+   "id": "battery",
+   "name": "Battery (PMU)",
+   "kind": "sensor",
+   "chip": "AXP2101",
+   "does": "Battery %, charging, battery/USB/system voltage, charge state and phase, die temperature; USB and battery plugged/removed events.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 28,
+     "quote": "| Battery (PMU) | AXP2101 (0x34)"
+    }
+   ]
+  },
+  {
+   "id": "battery-monitor",
+   "name": "Battery monitor (body)",
+   "kind": "sensor",
+   "chip": "INA226",
+   "does": "The body battery's voltage, current (+ drain, − charging), power and raw shunt voltage.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 29,
+     "quote": "| Battery monitor (body) | INA226 (0x41)"
+    }
+   ]
+  },
+  {
+   "id": "usb",
+   "name": "USB ports",
+   "kind": "sensor",
+   "chip": "AXP2101 VBUS",
+   "does": "A computer or a charger plugged in (usb_data, core_vbus_v, plug events); which of the two ports (head or stand) cannot be told.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 30,
+     "quote": "| USB ports (head CoreS3 + stand)"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     -27,
+     42.8,
+     26.25
+    ],
+    "how": "exact",
+    "note": "the CoreS3's USB-C on its right side (the stand's port is not modelled)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/shade.go",
+     "line": 96,
+     "quote": "roundRect(p.Z-cz, p.Y+0.7, 1.5, 4.4, 1.4)"
+    }
+   }
+  },
+  {
+   "id": "power-button",
+   "name": "Power button",
+   "kind": "sensor",
+   "chip": "AXP2101 PWRON",
+   "does": "power_button with a short or long press; a short press wakes the screen; held about 4 s it powers off.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 31,
+     "quote": "| Power button | on the AXP2101 PWRON"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     -27,
+     57.5,
+     26.25
+    ],
+    "how": "exact",
+    "note": "on the CoreS3's right side",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/shade.go",
+     "line": 90,
+     "quote": "roundRect(p.Z-cz, p.Y-14, 3, 2.6, 1.2)"
+    }
+   }
+  },
+  {
+   "id": "rtc",
+   "name": "Real-time clock",
+   "kind": "sensor",
+   "chip": "BM8563",
+   "does": "The time (rtc_unix in telemetry).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 32,
+     "quote": "| RTC | BM8563 (0x51)"
+    }
+   ]
+  },
+  {
+   "id": "chip",
+   "name": "Chip temperature, Wi-Fi",
+   "kind": "sensor",
+   "chip": "ESP32-S3",
+   "does": "Wi-Fi RSSI, free memory, chip temperature.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 33,
+     "quote": "| Chip temperature, Wi-Fi | ESP32-S3"
+    }
+   ]
+  },
+  {
+   "id": "display",
+   "name": "Display",
+   "kind": "actuator",
+   "chip": "ILI9342C/E",
+   "does": "The 2.0\" 320x240 screen: face, emotions, speech, stickers, pictures, QR codes, blank screen, brightness.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 39,
+     "quote": "| Display | 2.0\" ILI9342C/E, 320x240"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     44.5,
+     33.6
+    ],
+    "how": "exact",
+    "note": "the screen's centre on the CoreS3's front",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/export.go",
+     "line": 22,
+     "quote": "func Screen()"
+    }
+   }
+  },
+  {
+   "id": "yaw-servo",
+   "name": "Head yaw servo",
+   "kind": "actuator",
+   "chip": "SCS0009",
+   "does": "Turns the head left and right: angle ±128°, nod/shake/home, continuous rotation for 1–30 s after a Yes on the robot; slack at rest, hold keeps it powered.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 40,
+     "quote": "| Head yaw servo (360°) | SCS0009"
+    },
+    {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/export.go",
+     "line": 17,
+     "quote": "The yaw axis is the Y axis"
+    }
+   ],
+   "where": {
+    "part": "servo",
+    "offset": [
+     0,
+     8.5,
+     0
+    ],
+    "how": "joint",
+    "note": "the yaw joint: the servo body turns on the plate about the yaw axis",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 80,
+     "quote": "StackChan-ServoBody.stl"
+    }
+   }
+  },
+  {
+   "id": "pitch-servo",
+   "name": "Head pitch servo",
+   "kind": "actuator",
+   "chip": "SCS0009",
+   "does": "Tilts the head up and down: angle 5–85° (M5Stack's safe range), nod; slack at rest.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 41,
+     "quote": "| Head pitch servo (90°) | SCS0009"
+    }
+   ],
+   "where": {
+    "part": "servo",
+    "offset": [
+     0,
+     40.8,
+     0
+    ],
+    "how": "joint",
+    "note": "the pitch joint: robot3d's pitch pivot, the servo's horn",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 31,
+     "quote": "pivot is the pitch axis (along X) at rest: the servo's horn"
+    }
+   }
+  },
+  {
+   "id": "leds-left",
+   "name": "RGB LEDs, left",
+   "kind": "actuator",
+   "chip": "WS2812C (PY32L020)",
+   "does": "Six of the 12 RGB LEDs (0–5, 0 at the front) under the left light bar: a colour per side or per LED, and effects (rainbow, breathe, chase, blink).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 42,
+     "quote": "| RGB LEDs, 12 | WS2812C x12, two rows"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 138,
+     "quote": "`pixels` sets up to 12 single LEDs (left 0–5, then right 6–11"
+    }
+   ],
+   "where": {
+    "part": "led-bar-left",
+    "offset": [
+     26.1,
+     69.4,
+     -1.65
+    ],
+    "how": "exact",
+    "note": "the left light bar (+X), along the top",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/shade.go",
+     "line": 127,
+     "quote": "left, +X, LED 0 at the front; on the right LED 11"
+    }
+   }
+  },
+  {
+   "id": "leds-right",
+   "name": "RGB LEDs, right",
+   "kind": "actuator",
+   "chip": "WS2812C (PY32L020)",
+   "does": "Six of the 12 RGB LEDs (6–11) under the right light bar: a colour per side or per LED, and effects (rainbow, breathe, chase, blink).",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 42,
+     "quote": "| RGB LEDs, 12 | WS2812C x12, two rows"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 138,
+     "quote": "`pixels` sets up to 12 single LEDs (left 0–5, then right 6–11"
+    }
+   ],
+   "where": {
+    "part": "led-bar-right",
+    "offset": [
+     -26.1,
+     69.4,
+     -1.65
+    ],
+    "how": "exact",
+    "note": "the right light bar (-X), along the top",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/shade.go",
+     "line": 127,
+     "quote": "left, +X, LED 0 at the front; on the right LED 11"
+    }
+   }
+  },
+  {
+   "id": "speaker",
+   "name": "Speaker",
+   "kind": "actuator",
+   "chip": "AW88298 1 W",
+   "does": "Sound: talk from a browser, sound files, beeps (24 kHz PCM), volume; the mouth moves while it plays.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 43,
+     "quote": "| Speaker | AW88298 1 W (0x36)"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/README.md",
+     "line": 137,
+     "quote": "| Speaker | binary `0x03` PCM"
+    }
+   ]
+  },
+  {
+   "id": "ir-transmitter",
+   "name": "IR transmitter",
+   "kind": "actuator",
+   "chip": "IR LED (S8050, G5)",
+   "does": "Sends infrared remote codes (NEC or raw timings, repeat, frames); weak, so short range. It points up.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 44,
+     "quote": "| IR transmitter | IR LED on top of the robot near the display unit"
+    }
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     0,
+     70.5,
+     25.85
+    ],
+    "how": "near",
+    "note": "on top of the robot near the display unit (HARDWARE.md line 44): marked on the CoreS3's top; the exact place is not in the docs",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "path": "robot3d/mesh.go",
+     "line": 29,
+     "quote": "var coreCentre"
+    }
+   }
+  },
+  {
+   "id": "power-led",
+   "name": "Power/charge LED",
+   "kind": "actuator",
+   "chip": "AXP2101 CHGLED",
+   "does": "The red power LED: on, off, blink, fast, or driven by the charger.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 45,
+     "quote": "| Power/charge LED (red) | on the AXP2101 (CHGLED, reg 0x69)"
+    }
+   ]
+  },
+  {
+   "id": "servo-power",
+   "name": "Servo power",
+   "kind": "actuator",
+   "chip": "PY32 pin 0",
+   "does": "Switches the servos' supply: both head servos powered or limp.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 46,
+     "quote": "| Servo power | PY32 pin 0"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "e11a0b7bde9503a78d1b36b809287883f42a7fee",
+     "path": "readme.md",
+     "line": 293,
+     "quote": "| `servo_power` | `{\"on\": bool}`"
+    }
+   ]
+  }
+ ]
+}

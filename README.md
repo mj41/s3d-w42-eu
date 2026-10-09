@@ -22,6 +22,25 @@ Related projects (all public, cloned beside this one by `setup.sh`):
 Work is done in `claude/…` branches (a Claude cloud session may make them); `main` is merged by
 hand after review. `tasks/` holds the tasks given to cloud sessions.
 
+## What is here
+
+| Path | What it is |
+|---|---|
+| `cmd/s3dgen` | writes `web/robot.glb` from robot3d (`robot3d.Parts`, `PitchPivot`, `Screen`): nodes robot (mm → m) → base → yaw → head (at the pitch pivot), each part a named node under its joint, the screen a textured quad |
+| `data/parts.json` | the sensors and actuators: what each does, where it is (a robot3d part and an offset in mm; left out where the docs do not say), its sources (repo, commit, file, line, a quote from that line) |
+| `data/apps/<app>.json` | what an app does with each sensor and actuator it uses, with sources |
+| `web/index.html`, `web/app.js` | the page: three.js r160 from jsDelivr (pinned), the robot turning, drag to turn, markers, an app picker |
+| `main.go` | the site: one binary, standard library only, everything embedded |
+
+```bash
+./setup.sh                 # the related repos beside this one
+go run ./cmd/s3dgen        # web/robot.glb (after a change in robot3d)
+go vet ./... && go test ./...   # the sources' quotes are checked in the repos beside this one
+go run .                   # http://localhost:8080
+```
+
+A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
+
 ## License
 
 Apache License 2.0 (see LICENSE); the StackChan structure files it shows are M5Stack's, MIT.

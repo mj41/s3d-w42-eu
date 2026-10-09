@@ -1,0 +1,122 @@
+{
+ "id": "focus",
+ "name": "Focus",
+ "about": "A focus timer (Pomodoro style): the robot is the timer, a phone optional.",
+ "repo": "s-w42-eu-focus",
+ "sources": [
+  {
+   "repo": "s-w42-eu-focus",
+   "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+   "path": "readme.md",
+   "line": 5,
+   "quote": "**Focus** is a focus timer for Stackchan robots"
+  },
+  {
+   "repo": "s-w42-eu-focus",
+   "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+   "path": "readme.md",
+   "line": 74,
+   "quote": "{\"id\": \"focus\", \"name\": \"Focus\""
+  }
+ ],
+ "uses": [
+  {
+   "part": "display",
+   "does": "The phase, the time left as a ring and as digits, today's count, the set's dots, and a line for the room (\"FREE IN 12 MIN\").",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 35,
+     "quote": "**The screen:** the phase"
+    }
+   ]
+  },
+  {
+   "part": "touch-screen",
+   "does": "Tap to start or pause, hold to skip to the next phase.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 39,
+     "quote": "**Touch:** tap the screen"
+    }
+   ]
+  },
+  {
+   "part": "head-touch",
+   "does": "A touch on the head starts or pauses, as a tap on the screen does.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 39,
+     "quote": "(or touch the head) to start or pause"
+    }
+   ]
+  },
+  {
+   "part": "leds-left",
+   "does": "The time left as a shrinking bar: red while focusing, green or blue on a break, amber when paused, off when idle.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 41,
+     "quote": "**Lights:** both LED strips show the time left"
+    }
+   ]
+  },
+  {
+   "part": "leds-right",
+   "does": "The time left as a shrinking bar: red while focusing, green or blue on a break, amber when paused, off when idle.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 41,
+     "quote": "**Lights:** both LED strips show the time left"
+    }
+   ]
+  },
+  {
+   "part": "speaker",
+   "does": "A chime at the end of a phase: a rising bell after focus, two calm notes after a break.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 43,
+     "quote": "a chime (a rising bell after focus, two calm notes after a break)"
+    }
+   ]
+  },
+  {
+   "part": "pitch-servo",
+   "does": "A nod after focus, a look up after a break.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-focus",
+     "ref": "4f69bb5e19f1dbe02b0cc03730313c8d1b9125b5",
+     "path": "readme.md",
+     "line": 44,
+     "quote": "a nod after focus, a look up after a break"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 41,
+     "quote": "| Head pitch servo (90°) | SCS0009 | same | **partial**: angle **5–85°** (M5Stack safe range), nod"
+    }
+   ]
+  }
+ ]
+}

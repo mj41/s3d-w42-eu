@@ -63,7 +63,7 @@ s-w42-eu-assets at the commit that has it (branch `claude/robot3d-interior` ther
 the head as on the photos: the servo body's top cover and the black pitch servo); once that is in
 its `main`, `go get` the merge.
 
-**The page's light.** The robot casts a soft shadow on the ground, and its 12 LEDs light their
+**The page's light.** Photo-like: a soft studio round the robot (three.js's RoomEnvironment) lights and reflects in it, with a filmic tone curve set so the shell shows the light grey of the owner's photos; the screen shows its picture as it is (Embody Mode's launcher, `screens/launcher.png` in s-w42-eu-assets, as on the real robot). The robot casts a soft shadow on the ground, and its 12 LEDs light their
 bars as robot3d draws them (six under each bar; a lit LED shows its colour and lights the shell
 round the bar a little, an unlit one the bar's milky plastic): light blue as on the photos of a
 real robot, or what an app's `leds` gives (with its sources): one `color` for all, or `each` LED

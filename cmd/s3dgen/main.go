@@ -7,7 +7,7 @@
 // its node every vertex is where robot3d has it at rest. The screen is a textured quad at
 // robot3d.Screen() (its picture is drawn in robot3d's shader, not modelled).
 //
-//	go run ./cmd/s3dgen [-o web/robot.glb] [-screen ../s-w42-eu-assets/screens/pet-neutral.png]
+//	go run ./cmd/s3dgen [-o web/robot.glb] [-screen ../s-w42-eu-assets/screens/launcher.png]
 package main
 
 import (
@@ -18,9 +18,9 @@ import (
 	"github.com/mj41/s-w42-eu-assets/robot3d"
 )
 
-// defaultScreen is the screen's picture: the pet's neutral face, filling the screen (readable
-// at a distance, unlike the robot's own small face), from the assets cloned beside this repo.
-const defaultScreen = "../s-w42-eu-assets/screens/pet-neutral.png"
+// defaultScreen is the screen's picture: the robot's launcher, Embody Mode (as on the owner's
+// photos of the robot), from the assets cloned beside this repo.
+const defaultScreen = "../s-w42-eu-assets/screens/launcher.png"
 
 func main() {
 	out := flag.String("o", "web/robot.glb", "the glTF binary to write")

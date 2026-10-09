@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const stage = document.getElementById('stage');
 const status = document.getElementById('status');
@@ -19,6 +20,10 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Photo-like: a soft studio round the robot (three.js's RoomEnvironment) lights and reflects in
+// every surface, and a filmic tone curve keeps the light shell from burning out.
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.45; // the shell's side about #b5b5b9, as on the owner's photos
 stage.appendChild(renderer.domElement);
 const labels = new CSS2DRenderer();
 labels.domElement.style.position = 'absolute';
@@ -29,8 +34,9 @@ stage.appendChild(labels.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(css('--panel'));
-scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 1.6));
-const key = new THREE.DirectionalLight(0xffffff, 1.8);
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 0.5));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
 key.position.set(-0.045, 0.08, 0.055); // its shadow: a box round the robot (metres)
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
@@ -46,7 +52,7 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.Shado
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
-const fill = new THREE.DirectionalLight(0xffffff, 0.6);
+const fill = new THREE.DirectionalLight(0xffffff, 0.3);
 fill.position.set(0.75, 0.25, 0.45);
 scene.add(fill);
 
@@ -608,7 +614,10 @@ async function main() {
   apps = appsDoc.apps;
   for (const a of apps) appSelect.add(new Option(a.name, a.id));
   const robot = gltf.scene;
-  robot.traverse((o) => { if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; } });
+  robot.traverse((o) => {
+    if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; }
+    if (o.isMesh && o.name === 'screen') o.material.toneMapped = false; // the picture as it is
+  });
   lightLEDs(robot);
   addMarkers(robot, (gltf.parser.json.extras || {}).screen); // at rest, before it turns
   turntable.add(robot);

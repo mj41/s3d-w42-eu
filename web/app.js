@@ -56,6 +56,16 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
+// A fixed view (?view=front|back|left|right|head|leds, for comparing with photos): the robot
+// turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
+// (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
+const views = {
+  front: { yaw: 0 }, back: { yaw: 180 }, left: { yaw: -90 }, right: { yaw: 90 },
+  head: { yaw: -30, elevation: 20, zoom: 0.55, aim: 0.72 },
+  leds: { yaw: -55, elevation: 38, zoom: 0.45, aim: 0.95 },
+};
+const view = views[new URLSearchParams(location.search).get('view')] || null;
+if (view && view.elevation !== undefined) elevation = view.elevation * deg;
 let fitBox = null; // the robot's bounds at rest: {r (about the yaw axis), y0, y1}, metres
 function placeCamera() {
   camera.position.set(0, target.y + distance * Math.sin(elevation), distance * Math.cos(elevation));
@@ -127,6 +137,10 @@ function fit() {
   target.set(0, (y0 + y1) / 2, 0);
   const margin = 1.06;
   distance = r + margin * Math.max((y1 - y0) / 2 / v, r / hz);
+  if (view && view.zoom) {
+    distance *= view.zoom;
+    target.y = y0 + view.aim * (y1 - y0);
+  }
   placeCamera();
 }
 function measure(robot) {
@@ -140,7 +154,8 @@ function measure(robot) {
 
 // Turning: slowly by itself; a drag turns it (and tilts the view with a mouse), then it goes
 // on by itself after a moment. Touch keeps vertical swipes for scrolling the page.
-let spin = 0.25; // radians a second
+let spin = view ? 0 : 0.25; // radians a second
+if (view) turntable.rotation.y = view.yaw * deg;
 let idleAt = 0;
 let drag = null;
 stage.addEventListener('pointerdown', (e) => {

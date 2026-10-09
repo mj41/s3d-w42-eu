@@ -8,10 +8,12 @@
 //   - the side panel's links wrap: nothing overflows the panel or the page;
 //   - there are no console errors or uncaught exceptions.
 //
-// It writes a screenshot of each width to a temporary directory and prints its path. Run from
-// the repository's root:
+// It writes a screenshot of each width to a temporary directory (or -o) and prints its path;
+// -views also writes the 3D view alone at 1200 px from fixed views (the page's ?view=…: front,
+// back, left, right, and close-ups of the head and the LED bars), for comparing with photos.
+// Run from the repository's root:
 //
-//	go run ./cmd/pagecheck [-chrome path] [-url http://…] [-three-dir node_modules/three]
+//	go run ./cmd/pagecheck [-chrome path] [-url http://…] [-three-dir node_modules/three] [-o dir] [-views all|front,leds,…]
 //
 // -three-dir serves three.js from a local copy (npm three@0.160.0) in place of jsDelivr, for
 // a machine that cannot reach it.
@@ -57,9 +59,17 @@ func main() {
 	siteURL := flag.String("url", "", "check this site (default: build and start this repository's site)")
 	threeDir := flag.String("three-dir", "", "serve three.js from this copy of npm three in place of jsDelivr")
 	out := flag.String("o", "", "the directory for the screenshots (default: a new temporary one)")
+	viewsFlag := flag.String("views", "", "also screenshot these fixed views (comma-separated, or all: "+strings.Join(allViews, ",")+")")
 	flag.Parse()
 
-	failed, err := run(*chromeFlag, *siteURL, *threeDir, *out)
+	views := strings.Split(*viewsFlag, ",")
+	switch *viewsFlag {
+	case "":
+		views = nil
+	case "all":
+		views = allViews
+	}
+	failed, err := run(*chromeFlag, *siteURL, *threeDir, *out, views)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "pagecheck:", err)
 		os.Exit(2)
@@ -71,7 +81,10 @@ func main() {
 	fmt.Println("pagecheck: all checks passed")
 }
 
-func run(chromeFlag, siteURL, threeDir, out string) (int, error) {
+// allViews are the page's fixed views (web/app.js: views).
+var allViews = []string{"front", "back", "left", "right", "head", "leds"}
+
+func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error) {
 	chrome, err := findChrome(chromeFlag)
 	if err != nil {
 		return 0, err
@@ -105,7 +118,61 @@ func run(chromeFlag, siteURL, threeDir, out string) (int, error) {
 		}
 		failed += n
 	}
+	for _, v := range views {
+		if err := shootView(b, siteURL, threeDir, out, v); err != nil {
+			fmt.Printf("FAIL view %s: %v\n", v, err)
+			failed++
+		}
+	}
 	return failed, nil
+}
+
+// shootView writes the 3D view alone (no markers, no hint) at 1200 px from a fixed view.
+func shootView(b *browser, site, threeDir, out, name string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	p, err := openPage(b, threeDir)
+	if err != nil {
+		return err
+	}
+	defer p.ws.Close()
+	if err := p.setSize(ctx, widths[0], widths[0].w); err != nil {
+		return err
+	}
+	if err := p.Call(ctx, "Page.navigate", map[string]any{"url": site + "/?view=" + name}, nil); err != nil {
+		return err
+	}
+	time.Sleep(500 * time.Millisecond)
+	if err := p.waitFor(ctx, `!document.getElementById('status')`, 45*time.Second); err != nil {
+		return err
+	}
+	var st rect
+	if err := p.Eval(ctx, `(() => {
+		const box = document.getElementById('markers');
+		if (box.checked) { box.checked = false; box.dispatchEvent(new Event('change')); }
+		document.getElementById('hint').style.visibility = 'hidden';
+		const r = document.getElementById('stage').getBoundingClientRect();
+		return {X: r.left + scrollX, Y: r.top + scrollY, W: r.width, H: r.height};
+	})()`, &st); err != nil {
+		return err
+	}
+	time.Sleep(800 * time.Millisecond)
+	shot, err := p.screenshot(ctx, map[string]any{"x": st.X, "y": st.Y, "width": st.W, "height": st.H, "scale": 1})
+	if err != nil {
+		return err
+	}
+	file := filepath.Join(out, "view-"+name+".png")
+	if err := os.WriteFile(file, shot, 0o644); err != nil {
+		return err
+	}
+	p.mu.Lock()
+	errs := append([]string(nil), p.errors...)
+	p.mu.Unlock()
+	if len(errs) > 0 {
+		return fmt.Errorf("console errors: %s", strings.Join(errs, "; "))
+	}
+	fmt.Printf("     view %s: screenshot %s\n", name, file)
+	return nil
 }
 
 // startSite builds this repository's site and starts it on a free local port.

@@ -22,6 +22,7 @@ const labels = new CSS2DRenderer();
 labels.domElement.style.position = 'absolute';
 labels.domElement.style.inset = '0';
 labels.domElement.style.pointerEvents = 'none';
+labels.domElement.style.zIndex = '1'; // its labels' own z-indexes stay inside it, under the list
 stage.appendChild(labels.domElement);
 
 const scene = new THREE.Scene();
@@ -38,7 +39,8 @@ const target = new THREE.Vector3(0, 0.036, 0);
 const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
-let distance = 0.26, elevation = 14 * deg;
+let distance = 0.26, elevation = 12 * deg;
+let fitBox = null; // the robot's bounds at rest: {r (about the yaw axis), y0, y1}, metres
 function placeCamera() {
   camera.position.set(0, target.y + distance * Math.sin(elevation), distance * Math.cos(elevation));
   camera.lookAt(target);
@@ -49,11 +51,31 @@ function resize() {
   renderer.setSize(w, h);
   labels.setSize(w, h);
   camera.aspect = w / h;
-  distance = w < h ? 0.32 : 0.26; // a phone: narrower, so further away
   camera.updateProjectionMatrix();
+  fit();
   placeCamera();
 }
 new ResizeObserver(resize).observe(stage);
+
+// Framing: the robot turns, so what must fit is the cylinder round the yaw axis that holds it at
+// rest; the camera is as near as lets that fill the view (a little margin), at any width.
+function fit() {
+  if (!fitBox) { placeCamera(); return; }
+  const { r, y0, y1 } = fitBox;
+  const v = Math.tan(camera.fov * deg / 2), hz = v * camera.aspect;
+  target.set(0, (y0 + y1) / 2, 0);
+  const margin = 1.06;
+  distance = r + margin * Math.max((y1 - y0) / 2 / v, r / hz);
+  placeCamera();
+}
+function measure(robot) {
+  robot.updateWorldMatrix(true, true);
+  const box = new THREE.Box3().setFromObject(robot);
+  let r = 0;
+  for (const x of [box.min.x, box.max.x]) for (const z of [box.min.z, box.max.z]) r = Math.max(r, Math.hypot(x, z));
+  fitBox = { r, y0: box.min.y, y1: box.max.y };
+  fit();
+}
 
 // Turning: slowly by itself; a drag turns it (and tilts the view with a mouse), then it goes
 // on by itself after a moment. Touch keeps vertical swipes for scrolling the page.
@@ -70,7 +92,7 @@ stage.addEventListener('pointermove', (e) => {
   turntable.rotation.y += (e.clientX - drag.x) * 0.01;
   if (e.pointerType === 'mouse') {
     elevation = Math.min(70 * deg, Math.max(-20 * deg, elevation + (e.clientY - drag.y) * 0.006));
-    placeCamera();
+    fit();
   }
   drag.x = e.clientX; drag.y = e.clientY;
 });
@@ -93,20 +115,25 @@ function pose(now) {
   else headNode.rotation.x = -20 * deg * Math.abs(s); // +pitch lifts the front: about X by -pitch
 }
 
-// Markers: one per place (entries at the same part and offset share it), a dot and a label.
-const markers = []; // {ids, dot, label, el, world}
+// Markers: one per place. Entries on the same part within near mm of each other share one, at
+// the most exact member's place; its label is the name, or a count with the list on hover or tap.
+const near = 10;
+const markers = []; // {ids, items, dot, label, el, colour}
 let parts = [], apps = [], byId = new Map();
 let picked = null; // the app shown
 
 function addMarkers(robot) {
-  const groups = new Map();
+  const rank = { exact: 0, joint: 1, near: 2, inside: 3 };
+  const groups = [];
   for (const p of parts) {
     if (!p.where) continue;
-    const k = p.where.part + ':' + p.where.offset.join(',');
-    if (!groups.has(k)) groups.set(k, { where: p.where, items: [] });
-    groups.get(k).items.push(p);
+    const at = new THREE.Vector3().fromArray(p.where.offset);
+    let g = groups.find((g) => g.where.part === p.where.part && g.items.some((q) => at.distanceTo(new THREE.Vector3().fromArray(q.where.offset)) < near));
+    if (!g) groups.push(g = { where: p.where, items: [] });
+    g.items.push(p);
+    if (rank[p.where.how] < rank[g.where.how]) g.where = p.where;
   }
-  for (const { where, items } of groups.values()) {
+  for (const { where, items } of groups) {
     const node = robot.getObjectByName(where.part);
     if (!node) { console.warn('no part', where.part); continue; }
     const kind = items.every((p) => p.kind === 'sensor') ? 'sensor' : items.every((p) => p.kind === 'actuator') ? 'actuator' : 'both';
@@ -119,15 +146,60 @@ function addMarkers(robot) {
     const box = document.createElement('div'); // placed by CSS2DRenderer
     const el = document.createElement('div'); // moved down by spread() when labels overlap
     el.className = 'label';
-    el.textContent = items.map((p) => p.name).join(' · ');
+    if (items.length === 1) el.textContent = items[0].name;
+    else {
+      el.classList.add('group');
+      el.textContent = items.length + ' parts';
+      el.title = items.map((p) => p.name).join(', ');
+    }
     box.append(el);
     const label = new CSS2DObject(box);
     label.center.set(0, 0.5); // the label starts at the dot
     label.position.fromArray(where.offset);
     node.add(label);
-    markers.push({ ids: items.map((p) => p.id), dot, label, el, colour });
+    const m = { ids: items.map((p) => p.id), items, dot, label, el, colour };
+    markers.push(m);
+    if (items.length > 1) {
+      el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
+      el.addEventListener('click', (e) => { e.stopPropagation(); openPop(open === m && pinned ? null : m, true); });
+      el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(m); });
+      el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(null); });
+    }
   }
 }
+
+// The list of a group's parts, next to its label.
+const pop = document.createElement('div');
+pop.id = 'pop';
+pop.hidden = true;
+stage.append(pop);
+let open = null, pinned = false;
+function openPop(m, pin = false) {
+  open = m;
+  pinned = !!m && pin;
+  pop.hidden = !m;
+  if (!m) return;
+  const used = picked ? new Set(picked.uses.map((u) => u.part)) : null;
+  pop.replaceChildren(...m.items.map((p) => {
+    const row = document.createElement('div');
+    row.className = 'row' + (used && !used.has(p.id) ? ' dimmed' : used ? ' used' : '');
+    const k = document.createElement('span');
+    k.className = 'kind ' + p.kind; k.textContent = p.kind;
+    row.append(p.name, k);
+    return row;
+  }));
+  placePop();
+}
+function placePop() {
+  if (!open) return;
+  const s = stage.getBoundingClientRect(), r = open.el.getBoundingClientRect();
+  const x = Math.min(r.left - s.left, s.width - pop.offsetWidth - 6);
+  let y = r.bottom - s.top + 4;
+  if (y + pop.offsetHeight > s.height - 4) y = r.top - s.top - pop.offsetHeight - 4;
+  pop.style.left = Math.max(6, x) + 'px';
+  pop.style.top = Math.max(6, y) + 'px';
+}
+stage.addEventListener('click', () => { if (open) openPop(null); });
 
 const world = new THREE.Vector3(), toCam = new THREE.Vector3(), out = new THREE.Vector3();
 function updateMarkers() {
@@ -137,6 +209,7 @@ function updateMarkers() {
     const on = !used || m.ids.some((id) => used.has(id));
     m.dot.visible = show;
     m.label.visible = show;
+    if (!show && open === m) openPop(null);
     m.el.classList.toggle('used', !!used && on);
     m.el.classList.toggle('dimmed', !on);
     m.dot.material.color.copy(on ? m.colour : new THREE.Color(css('--dim')));
@@ -159,13 +232,17 @@ function spread() {
     return { m, x: (screenPos.x + 1) / 2 * w + 8, y: (1 - screenPos.y) / 2 * h, wd: m.el.offsetWidth, ht: m.el.offsetHeight };
   }).sort((a, b) => a.y - b.y);
   for (const l of shown) {
-    let y = l.y;
-    for (const p of placed) {
-      if (l.x < p.x + p.wd && p.x < l.x + l.wd && y < p.y + p.ht + 2 && p.y < y + l.ht) y = p.y + p.ht + 2;
-    }
     const dx = Math.min(0, w - 6 - (l.x + l.wd)); // kept inside the stage
+    const x = l.x + dx;
+    let y = l.y;
+    for (let moved = true; moved;) { // until it is clear of every placed label
+      moved = false;
+      for (const p of placed) {
+        if (x < p.x + p.wd && p.x < x + l.wd && y < p.y + p.ht + 2 && p.y < y + l.ht) { y = p.y + p.ht + 2; moved = true; }
+      }
+    }
     l.m.el.style.transform = `translate(${Math.round(dx)}px, ${Math.round(y - l.y)}px)`;
-    placed.push({ ...l, x: l.x + dx, y });
+    placed.push({ ...l, x, y });
   }
 }
 
@@ -207,7 +284,10 @@ function item(p, does, srcs) {
     li.classList.add('active');
     showMove(p.id);
     const m = markers.find((m) => m.ids.includes(p.id));
-    if (m) { m.el.classList.remove('flash'); void m.el.offsetWidth; m.el.classList.add('flash'); }
+    if (m) {
+      m.el.classList.remove('flash'); void m.el.offsetWidth; m.el.classList.add('flash');
+      openPop(m.items.length > 1 ? m : null, true);
+    }
   });
   return li;
 }
@@ -235,6 +315,7 @@ function render() {
     panel.append(p);
   }
   updateMarkers();
+  if (open) openPop(open, pinned);
 }
 
 markersBox.addEventListener('change', updateMarkers);
@@ -248,12 +329,13 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (!drag && now > idleAt) turntable.rotation.y += spin * dt;
+  if (!drag && !open && now > idleAt) turntable.rotation.y += spin * dt; // held while a list is open
   pose(now);
   if (markers.length) updateMarkers();
   renderer.render(scene, camera);
   labels.render(scene, camera);
   spread();
+  placePop();
   requestAnimationFrame(frame);
 }
 
@@ -273,6 +355,7 @@ async function main() {
   turntable.add(robot);
   yawNode = robot.getObjectByName('yaw');
   headNode = robot.getObjectByName('head');
+  measure(robot);
   addMarkers(robot);
   const fromHash = apps.find((a) => '#' + a.id === location.hash);
   if (fromHash) { appSelect.value = fromHash.id; picked = fromHash; }

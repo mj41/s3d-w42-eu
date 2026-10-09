@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mj41/s-w42-eu-assets/robot3d"
@@ -244,5 +247,26 @@ func TestPose(t *testing.T) {
 				t.Errorf("pitch %v: the screen's centre at y %.2f, not lifted", pose[1], c.Y)
 			}
 		}
+	}
+}
+
+// The committed web/robot.glb is what s3dgen writes now (with its default screen picture, from
+// the assets cloned beside this repo; skipped without them).
+func TestCommittedUpToDate(t *testing.T) {
+	png, err := os.ReadFile(filepath.Join("../..", defaultScreen)) // tests run in cmd/s3dgen
+	if err != nil {
+		t.Skip("no ../s-w42-eu-assets (setup.sh)")
+	}
+	centre, w, h := robot3d.Screen()
+	want, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile("../../web/robot.glb")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Error("web/robot.glb is not what s3dgen writes: go run ./cmd/s3dgen")
 	}
 }

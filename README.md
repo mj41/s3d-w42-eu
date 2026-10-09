@@ -31,6 +31,7 @@ hand after review. `tasks/` holds the tasks given to cloud sessions.
 | `data/apps/<app>.json` | what an app does with each sensor and actuator it uses, with sources |
 | `web/index.html`, `web/app.js` | the page: three.js r160 from jsDelivr (pinned), the robot turning, drag to turn, markers, an app picker |
 | `main.go` | the site: one binary, standard library only, everything embedded |
+| `tools/pagecheck.cjs` | a headless check of the page (Playwright): labels apart, panel not overflowing, a group's list on tap, at 1200, 420 and 1600 px |
 
 ```bash
 ./setup.sh                 # the related repos beside this one

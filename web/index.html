@@ -25,7 +25,7 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; pa
 @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
 #stage { position: relative; min-height: 420px; height: calc(100vh - 110px); border-radius: 12px;
   overflow: hidden; background: var(--panel); border: 1px solid var(--line); touch-action: pan-y; cursor: grab; }
-@media (max-width: 860px) { #stage { height: 62vh; min-height: 320px; } }
+@media (max-width: 860px) { #stage { height: min(62vh, calc(100vw - 20px)); min-height: 300px; } } /* about square: the turning robot is as wide as it is high */
 #stage.dragging { cursor: grabbing; }
 #stage canvas { display: block; }
 #status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
@@ -47,13 +47,21 @@ ul.items li.active { background: color-mix(in srgb, var(--accent) 10%, transpare
 .kind.sensor { background: var(--sensor); } .kind.actuator { background: var(--actuator); }
 .does { margin: 2px 0; }
 .meta, .src { font-size: .8rem; color: var(--muted); }
-.src a { color: inherit; }
+.src a { color: inherit; overflow-wrap: anywhere; }
+.src, .about, .does, .meta { overflow-wrap: anywhere; }
+aside { min-width: 0; }
 .unplaced { font-size: .8rem; color: var(--muted); }
 .label { font-size: 11px; line-height: 1.2; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
   background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); color: var(--ink);
   margin-left: 8px; pointer-events: none; transition: opacity .2s; }
 .label.flash { animation: flash .8s; }
 @keyframes flash { from { background: var(--accent); color: #fff; } }
+.label.group { pointer-events: auto; cursor: pointer; text-decoration: underline dotted; }
+.label.group::after { content: " ▾"; }
+#pop { position: absolute; z-index: 5; min-width: 160px; max-width: calc(100% - 12px); padding: 4px 0; border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.18); font-size: 13px; }
+#pop .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 10px; }
+#pop .row.used { font-weight: 600; } #pop .row.dimmed { opacity: .45; }
 .label.used { border-color: var(--accent); font-weight: 600; }
 .label.dimmed { opacity: .35; }
 .label.behind { opacity: .2; }

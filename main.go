@@ -40,7 +40,9 @@ type Source struct {
 type Where struct {
 	Part   string     `json:"part"`
 	Offset [3]float64 `json:"offset"`
-	How    string     `json:"how"` // exact, joint, inside, near
+	How    string     `json:"how"`            // exact, joint, inside, near
+	Area   string     `json:"area,omitempty"` // screen: the screen's rectangle, outlined
+	Out    []float64  `json:"out,omitempty"`  // from where its marker is seen (at rest); none: out from the yaw axis
 	Note   string     `json:"note"`
 	Source Source     `json:"source"`
 }
@@ -49,7 +51,8 @@ type Where struct {
 type Part struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
-	Kind    string   `json:"kind"` // sensor, actuator
+	Kind    string   `json:"kind"`           // sensor, actuator
+	With    []string `json:"with,omitempty"` // a feature of these parts: no place of its own
 	Chip    string   `json:"chip"`
 	Does    string   `json:"does"`
 	Where   *Where   `json:"where,omitempty"` // nil: the docs do not say where

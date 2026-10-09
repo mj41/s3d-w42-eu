@@ -551,6 +551,32 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	}
 	fmt.Printf("     %s px: screenshot %s\n", w.name, file)
 	p.Eval(ctx, `(() => { const e = document.getElementById('pop'); if (e && !e.hidden) document.getElementById('stage').click(); return true; })()`, nil)
+
+	// A pick in the list stops the turning and focuses its marker; All clears and checks the
+	// list's markers; the app comes from the address (#raw).
+	var pick struct {
+		Spin  string
+		Focus string
+	}
+	p.Eval(ctx, `(() => { const li = document.querySelector('li[data-id="pitch-servo"] .name'); if (li) li.click(); return true; })()`, nil)
+	time.Sleep(1200 * time.Millisecond)
+	p.Eval(ctx, `({Spin: document.getElementById('spin').getAttribute('aria-pressed'), Focus: (document.querySelector('.label.focus') || {}).textContent || ''})`, &pick)
+	report(pick.Spin == "false" && pick.Focus == "Head pitch servo", "a pick in the list (Head pitch servo): turning %s, focused %q", map[string]string{"false": "stopped", "true": "still on"}[pick.Spin], pick.Focus)
+	if shot, err := p.screenshot(ctx, nil); err == nil {
+		os.WriteFile(filepath.Join(out, "pagecheck-"+w.name+"-pick.png"), shot, 0o644)
+	}
+	var shown [2]int
+	p.Eval(ctx, `(() => { const b = document.getElementById('markers'); const n = () => [...document.querySelectorAll('.label')].filter((e) => e.textContent && e.offsetParent && getComputedStyle(e.parentElement).display !== 'none').length;
+		b.checked = false; b.dispatchEvent(new Event('change')); const off = n(); b.checked = true; b.dispatchEvent(new Event('change')); return [off, n()]; })()`, &shown)
+	report(shown[0] == 0 && shown[1] > 0, "All: %d labels cleared, %d checked", shown[0], shown[1])
+	var raw string
+	p.Eval(ctx, `(() => { location.hash = 'raw'; return true; })()`, nil)
+	time.Sleep(400 * time.Millisecond)
+	p.Eval(ctx, `(document.querySelector('#panel h2') || {}).textContent || ''`, &raw)
+	report(raw == "Raw data", "#raw opens the app: %q", raw)
+	p.Eval(ctx, `(() => { location.hash = 'pet'; return true; })()`, nil)
+	time.Sleep(400 * time.Millisecond)
+
 	if err := p.setSize(ctx, w, w.resizedWidth); err != nil {
 		return failed, err
 	}

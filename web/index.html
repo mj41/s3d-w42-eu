@@ -19,14 +19,21 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-header { padding: 14px 16px 6px; }
+header { padding: 14px 16px 6px; display: flex; gap: 8px 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+nav.sites { display: flex; gap: 4px 12px; flex-wrap: wrap; font-size: .9rem; padding-top: 3px; }
+nav.sites a { color: var(--accent); text-decoration: none; font-weight: 600; }
+nav.sites a:hover { text-decoration: underline; }
 h1 { margin: 0; font-size: 1.3rem; }
 header p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
-main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; padding: 8px 16px 16px; }
+main { display: grid; grid-template-columns: min(calc(100vh - 110px), 58vw) minmax(0, 1fr); gap: 12px; padding: 8px 16px 16px; align-items: start; }
 @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
-#stage { position: relative; min-height: 420px; height: calc(100vh - 110px); border-radius: 12px;
+/* about square: the turning robot is as wide as it is high */
+#stage { position: relative; aspect-ratio: 1; min-height: 420px; max-height: calc(100vh - 110px); border-radius: 12px;
   overflow: hidden; background: var(--panel); border: 1px solid var(--line); touch-action: pan-y; cursor: grab; }
-@media (max-width: 860px) { #stage { height: min(62vh, calc(100vw - 20px)); min-height: 300px; } } /* about square: the turning robot is as wide as it is high */
+@media (max-width: 860px) { #stage { min-height: 300px; max-height: 75vh; } }
+#spin { position: absolute; top: 8px; right: 8px; z-index: 2; font: inherit; font-size: .82rem; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 90%, transparent); color: var(--ink); cursor: pointer; }
+#spin[aria-pressed="false"] { color: var(--accent); border-color: var(--accent); }
 #stage.dragging { cursor: grabbing; }
 #stage canvas { display: block; }
 #status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
@@ -40,9 +47,15 @@ select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid 
 h2 { font-size: 1rem; margin: 12px 0 4px; }
 .about { color: var(--muted); margin: 4px 0 8px; font-size: .92rem; }
 ul.items { list-style: none; margin: 0; padding: 0; }
-ul.items li { padding: 7px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+ul.items li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 7px 6px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
+ul.items li input { margin-top: 4px; cursor: pointer; }
+ul.items li:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+ul.apps { list-style: none; margin: 0 0 6px; padding: 0; } ul.apps li { padding: 4px 0; }
+ul.apps li > a { font-weight: 600; color: var(--accent); }
+.links { display: inline-flex; gap: 10px; flex-wrap: wrap; font-size: .85rem; margin: 2px 0 4px; }
+.links a { color: var(--accent); }
 ul.items li:last-child { border-bottom: 0; }
-ul.items li.active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+ul.items li.active { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 3px 0 var(--accent); }
 .name { font-weight: 600; }
 .kind { display: inline-block; font-size: .72rem; padding: 0 6px; border-radius: 8px; margin-left: 6px; color: #fff; vertical-align: 1px; }
 .kind.sensor { background: var(--sensor); } .kind.actuator { background: var(--actuator); }
@@ -55,14 +68,16 @@ aside { min-width: 0; }
 .unplaced { font-size: .8rem; color: var(--muted); }
 .label { font-size: 11px; line-height: 1.2; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
   background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); color: var(--ink);
-  margin-left: 8px; pointer-events: none; transition: opacity .2s; }
+  margin-left: 8px; pointer-events: auto; cursor: pointer; transition: opacity .2s; }
+.label.focus { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; z-index: 3; }
 .label.flash { animation: flash .8s; }
 @keyframes flash { from { background: var(--accent); color: #fff; } }
 .label.group { pointer-events: auto; cursor: pointer; text-decoration: underline dotted; }
 .label.group::after { content: " ▾"; }
 #pop { position: absolute; z-index: 5; min-width: 160px; max-width: calc(100% - 12px); padding: 4px 0; border-radius: 8px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.18); font-size: 13px; }
-#pop .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 10px; }
+#pop .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 10px; cursor: pointer; }
+#pop .row:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 #pop .row.used { font-weight: 600; } #pop .row.dimmed { opacity: .45; }
 .label.used { border-color: var(--accent); font-weight: 600; }
 .label.dimmed { opacity: .35; }
@@ -75,15 +90,23 @@ footer a { color: inherit; }
 </head>
 <body>
 <header>
-  <h1>Stackchan in 3D</h1>
-  <p>The robot, its sensors and actuators, and what each app does with them. Drag to turn it.</p>
+  <div>
+    <h1>Stackchan in 3D</h1>
+    <p>The robot, its sensors and actuators, and what each app does with them. Drag to turn it; pick a part to see it.</p>
+  </div>
+  <nav class="sites" aria-label="Stackchan sites">
+    <a href="https://s.w42.eu">s.w42.eu</a>
+    <a href="https://sm.w42.eu" title="the Stackchan manager">sm.w42.eu</a>
+    <a href="https://raw.sa.w42.eu" title="Raw data">raw.sa.w42.eu</a>
+    <a href="https://pet.sa.w42.eu" title="Pet">pet.sa.w42.eu</a>
+  </nav>
 </header>
 <main>
-  <div id="stage"><div id="status">Loading the robot…</div><div id="hint">drag to turn</div></div>
+  <div id="stage"><div id="status">Loading the robot…</div><div id="hint">drag to turn</div><button id="spin" type="button" aria-pressed="true">⏸ Stop turning</button></div>
   <aside>
     <div class="controls">
-      <label><input type="checkbox" id="markers" checked> Sensors and actuators</label>
-      <label>App <select id="app"><option value="">— none —</option></select></label>
+      <label>App <select id="app"><option value="">— none: all parts —</option></select></label>
+      <label title="Show all of the list on the robot"><input type="checkbox" id="markers" checked> All</label>
     </div>
     <div id="panel"></div>
   </aside>
@@ -92,6 +115,8 @@ footer a { color: inherit; }
   The model: <a href="https://github.com/mj41/s-w42-eu-assets">robot3d</a> (M5Stack's StackChan structure, MIT).
   The parts: the <a href="https://github.com/mj41/StackChan/tree/embody-mj41/firmware/main/apps/app_embody_mode">Embody Mode firmware</a>'s docs.
   Source: <a href="https://github.com/mj41/s3d-w42-eu">s3d-w42-eu</a>.
+  The Stackchan sites: <a href="https://s.w42.eu">s.w42.eu</a> (index), <a href="https://sm.w42.eu">sm.w42.eu</a> (the manager),
+  the apps <a href="https://raw.sa.w42.eu">raw.sa.w42.eu</a> and <a href="https://pet.sa.w42.eu">pet.sa.w42.eu</a>.
 </footer>
 </body>
 </html>

@@ -1,0 +1,353 @@
+{
+ "id": "raw",
+ "name": "Raw data",
+ "about": "The raw dashboard: see through the robot and control it from any browser, every sensor and command.",
+ "repo": "s-w42-eu-raw",
+ "web": "https://raw.sa.w42.eu",
+ "sources": [
+  {
+   "repo": "s-w42-eu-raw",
+   "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+   "path": "readme.md",
+   "line": 5,
+   "quote": "Relay between M5Stack Stackchan robots and web browsers"
+  },
+  {
+   "repo": "home-w42-eu",
+   "ref": "ac17e050cf08e2e7899f03df5a668284596c9c31",
+   "path": "docs/stackchan-sites.md",
+   "line": 15,
+   "quote": "every sensor and command, an app like any other"
+  }
+ ],
+ "uses": [
+  {
+   "part": "display",
+   "does": "Faces (six emotions), speech bubbles, stickers, emoji and pictures from the phone; brightness.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 44,
+     "quote": "**Face:**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 48,
+     "quote": "**Screen:**"
+    }
+   ]
+  },
+  {
+   "part": "touch-screen",
+   "does": "Live touch: both fingers drawn at 50 Hz; taps with coordinates in Events.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 49,
+     "quote": "**Live touch**"
+    }
+   ]
+  },
+  {
+   "part": "camera",
+   "does": "Live video (JPEG, about 5 fps), a 640×480 snapshot, mirror and flip, raw sensor registers.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 54,
+     "quote": "**Camera & mic:**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 50,
+     "quote": "**Camera extras:**"
+    }
+   ]
+  },
+  {
+   "part": "microphones",
+   "does": "The robot's microphone, played in the browser.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 54,
+     "quote": "**Camera & mic:**"
+    }
+   ]
+  },
+  {
+   "part": "speaker",
+   "does": "Talk from the phone, play a sound file, beep.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 55,
+     "quote": "**Speaker:**"
+    }
+   ]
+  },
+  {
+   "part": "yaw-servo",
+   "does": "Nod, shake, home, a yaw slider; continuous rotation after a Yes on the robot.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 45,
+     "quote": "**Head:**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 52,
+     "quote": "**Head extras:**"
+    }
+   ]
+  },
+  {
+   "part": "pitch-servo",
+   "does": "A pitch slider (5–85°), nod, home, hold position.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 45,
+     "quote": "**Head:**"
+    }
+   ]
+  },
+  {
+   "part": "servo-feedback",
+   "does": "Servo load and temperature, supply voltage, the reported angles.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "leds-left",
+   "does": "One colour for all, random, effects (rainbow, breathe, chase, blink), a picker per LED.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 46,
+     "quote": "**LEDs:**"
+    }
+   ]
+  },
+  {
+   "part": "leds-right",
+   "does": "As the left: all 12 LEDs from the dashboard.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 46,
+     "quote": "**LEDs:**"
+    }
+   ]
+  },
+  {
+   "part": "imu",
+   "does": "Shake in Events; a live 100 Hz IMU with a CSV download; acceleration and rotation in Sensors.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 53,
+     "quote": "**Live IMU**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "magnetometer",
+   "does": "The magnetic field per axis (µT and raw counts), live with the IMU.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "light",
+   "does": "Room light (lux) in Sensors.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "proximity",
+   "does": "Proximity in Sensors.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "head-touch",
+   "does": "Head touch in Events: press with the zones, release with its duration, swipes.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 63,
+     "quote": "head touch (press with the touched zones"
+    }
+   ]
+  },
+  {
+   "part": "nfc",
+   "does": "Reader on/off; a tag near the robot adds its UID, type and NDEF record to Events.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 58,
+     "quote": "**NFC:**"
+    }
+   ]
+  },
+  {
+   "part": "ir-receiver",
+   "does": "A TV remote's code shows up, to send again or save.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 56,
+     "quote": "**Infrared:**"
+    }
+   ]
+  },
+  {
+   "part": "ir-transmitter",
+   "does": "Send NEC or raw codes, hold, send 3×, test the LED, self-test.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 56,
+     "quote": "**Infrared:**"
+    }
+   ]
+  },
+  {
+   "part": "power-led",
+   "does": "On, blink, fast, off, or charging.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 57,
+     "quote": "**Power LED**"
+    }
+   ]
+  },
+  {
+   "part": "battery",
+   "does": "Battery, charging, the CoreS3 power chip's voltages and state.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 42,
+     "quote": "**Status:**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "battery-monitor",
+   "does": "The body battery's voltage, current and power (INA226).",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "chip",
+   "does": "Chip temperature, Wi-Fi, free memory, uptime; ping split into its legs.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 42,
+     "quote": "**Status:**"
+    },
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 43,
+     "quote": "**Latency:**"
+    }
+   ]
+  }
+ ]
+}

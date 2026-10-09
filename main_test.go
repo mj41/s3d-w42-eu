@@ -53,6 +53,17 @@ func TestParts(t *testing.T) {
 	model := modelParts()
 	seen := map[string]bool{}
 	for _, e := range p.Parts {
+		seen[e.ID] = true
+	}
+	for _, e := range p.Parts {
+		for _, w := range e.With {
+			if !seen[w] || w == e.ID {
+				t.Errorf("%s: with %q, not another part", e.ID, w)
+			}
+		}
+	}
+	seen = map[string]bool{}
+	for _, e := range p.Parts {
 		if e.ID == "" || e.Name == "" || e.Does == "" || e.Chip == "" {
 			t.Errorf("%q: id, name, chip and what it does are needed", e.ID)
 		}
@@ -69,10 +80,19 @@ func TestParts(t *testing.T) {
 		for _, s := range e.Sources {
 			checkSource(t, e.ID, s)
 		}
+		if len(e.With) > 0 && e.Where != nil {
+			t.Errorf("%s: with %v and a where of its own", e.ID, e.With)
+		}
 		if e.Where == nil {
 			continue
 		}
 		w := e.Where
+		if w.Area != "" && w.Area != "screen" {
+			t.Errorf("%s: area %q", e.ID, w.Area)
+		}
+		if w.Out != nil && (len(w.Out) != 3 || w.Out[0] == 0 && w.Out[1] == 0 && w.Out[2] == 0) {
+			t.Errorf("%s: out %v: a direction", e.ID, w.Out)
+		}
 		checkSource(t, e.ID+" where", w.Source)
 		switch w.How {
 		case "exact", "joint", "inside", "near":
@@ -169,7 +189,7 @@ func TestApps(t *testing.T) {
 			}
 		}
 	}
-	for _, id := range []string{"pet", "focus"} {
+	for _, id := range []string{"pet", "focus", "raw"} {
 		if !got[id] {
 			t.Errorf("app %s missing", id)
 		}

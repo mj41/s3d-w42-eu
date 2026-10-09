@@ -181,12 +181,22 @@ function measure(robot) {
   fit();
 }
 
-// Turning: slowly by itself; a drag turns it (and tilts the view with a mouse), then it goes
-// on by itself after a moment. Touch keeps vertical swipes for scrolling the page.
-let spin = view ? 0 : 0.25; // radians a second
+// Turning: slowly by itself until the button stops it, or a drag (which turns it, and tilts the
+// view with a mouse) or a pick in the list (which turns the picked part to the front) does.
+// Touch keeps vertical swipes for scrolling the page.
+const spin = 0.25; // radians a second
+const spinButton = document.getElementById('spin');
+let autoTurn = false;
+function setAutoTurn(on) {
+  autoTurn = on;
+  spinButton.textContent = on ? '⏸ Stop turning' : '▶ Turn';
+  spinButton.setAttribute('aria-pressed', String(on));
+}
+setAutoTurn(!view);
 if (view) turntable.rotation.y = view.yaw * deg;
-let idleAt = 0;
-let drag = null;
+spinButton.addEventListener('pointerdown', (e) => e.stopPropagation());
+spinButton.addEventListener('click', (e) => { e.stopPropagation(); turnTo = null; setAutoTurn(!autoTurn); });
+let drag = null, turnTo = null;
 stage.addEventListener('pointerdown', (e) => {
   drag = { x: e.clientX, y: e.clientY, id: e.pointerId };
   stage.setPointerCapture(e.pointerId);
@@ -194,16 +204,39 @@ stage.addEventListener('pointerdown', (e) => {
 });
 stage.addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
-  turntable.rotation.y += (e.clientX - drag.x) * 0.01;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (dx || dy) { setAutoTurn(false); turnTo = null; }
+  turntable.rotation.y += dx * 0.01;
   if (e.pointerType === 'mouse') {
-    elevation = Math.min(70 * deg, Math.max(-20 * deg, elevation + (e.clientY - drag.y) * 0.006));
+    elevation = Math.min(70 * deg, Math.max(-20 * deg, elevation + dy * 0.006));
     fit();
   }
   drag.x = e.clientX; drag.y = e.clientY;
 });
-const endDrag = () => { drag = null; idleAt = performance.now() + 2500; stage.classList.remove('dragging'); };
+const endDrag = () => { drag = null; stage.classList.remove('dragging'); };
 stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', endDrag);
+
+// faceTo turns the robot (and tilts the view) so that a direction at rest faces the camera.
+function faceTo(out) {
+  const from = turntable.rotation.y;
+  let to = from;
+  if (Math.hypot(out.x, out.z) > 0.3) {
+    const a = -Math.atan2(out.x, out.z);
+    to = from + ((((a - from) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  }
+  const up = out.y / out.length();
+  turnTo = { from, to, el0: elevation, el1: up > 0.7 ? 55 * deg : up > 0.2 ? 30 * deg : 12 * deg, t0: performance.now(), ms: 700 };
+  setAutoTurn(false);
+}
+function turning(now) {
+  if (!turnTo) return;
+  const t = Math.min(1, (now - turnTo.t0) / turnTo.ms), s = t * t * (3 - 2 * t);
+  turntable.rotation.y = turnTo.from + (turnTo.to - turnTo.from) * s;
+  elevation = turnTo.el0 + (turnTo.el1 - turnTo.el0) * s;
+  placeCamera();
+  if (t >= 1) turnTo = null;
+}
 
 // The head's joints (robot.glb's yaw and head nodes) and a short move to show a servo.
 let yawNode = null, headNode = null, move = null;
@@ -220,60 +253,87 @@ function pose(now) {
   else headNode.rotation.x = -20 * deg * Math.abs(s); // +pitch lifts the front: about X by -pitch
 }
 
-// Markers: one per place. Entries on the same part within near mm of each other share one, at
-// the most exact member's place; its label is the name, or a count with the list on hover or tap.
+// Markers: one per place, on the robot's surface: where a ray from outside along the entry's out
+// (data/parts.json) meets the robot at rest. Entries on the same part within near mm of each
+// other share one; its label is the name, or a count with the list on hover or tap. The screen's
+// entries (area screen) outline the screen. Only the selected entries of the list show.
 const near = 10;
-const markers = []; // {ids, items, dot, label, el, colour}
+const markers = []; // {ids, items, obj, label, el, colour, out}
 let parts = [], apps = [], byId = new Map();
 let picked = null; // the app shown
+const selected = new Set(); // ids checked in the list
+let focused = null; // the marker picked last in the list
 
-function addMarkers(robot) {
+function outOf(where) {
+  if (where.out) return new THREE.Vector3().fromArray(where.out).normalize();
+  const o = new THREE.Vector3(where.offset[0], 0, where.offset[2]);
+  return o.lengthSq() > 1 ? o.normalize() : new THREE.Vector3(0, 0, 1);
+}
+// onSurface gives where the ray from outside along out meets the robot, in node's space.
+function onSurface(robot, node, offset, out) {
+  const p = node.localToWorld(new THREE.Vector3().fromArray(offset));
+  const ray = new THREE.Raycaster(p.clone().addScaledVector(out, 0.2), out.clone().negate(), 0, 0.2);
+  const hit = ray.intersectObject(robot, true).find((h) => h.object.isMesh);
+  return node.worldToLocal((hit ? hit.point : p).clone());
+}
+function addMarkers(robot, screen) {
   const rank = { exact: 0, joint: 1, near: 2, inside: 3 };
   const groups = [];
   for (const p of parts) {
     if (!p.where) continue;
     const at = new THREE.Vector3().fromArray(p.where.offset);
-    let g = groups.find((g) => g.where.part === p.where.part && g.items.some((q) => at.distanceTo(new THREE.Vector3().fromArray(q.where.offset)) < near));
+    let g = groups.find((g) => g.where.part === p.where.part && (g.where.area || '') === (p.where.area || '') &&
+      g.items.some((q) => at.distanceTo(new THREE.Vector3().fromArray(q.where.offset)) < near));
     if (!g) groups.push(g = { where: p.where, items: [] });
     g.items.push(p);
     if (rank[p.where.how] < rank[g.where.how]) g.where = p.where;
   }
+  robot.updateMatrixWorld(true);
   for (const { where, items } of groups) {
-    const node = robot.getObjectByName(where.part);
+    const node = robot.getObjectByName(where.area === 'screen' ? 'screen' : where.part);
     if (!node) { console.warn('no part', where.part); continue; }
     const kind = items.every((p) => p.kind === 'sensor') ? 'sensor' : items.every((p) => p.kind === 'actuator') ? 'actuator' : 'both';
     const colour = new THREE.Color(css(kind === 'actuator' ? '--actuator' : '--sensor'));
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12),
-      new THREE.MeshBasicMaterial({ color: colour, depthTest: false, transparent: true }));
-    dot.renderOrder = 10;
-    dot.position.fromArray(where.offset);
-    node.add(dot);
+    const out = outOf(where);
+    let obj, at;
+    if (where.area === 'screen' && screen) { // a frame round the screen
+      const [cx, cy, cz] = screen.centre, w = screen.width / 2, h = screen.height / 2;
+      const shape = new THREE.Shape().moveTo(-w - 1.6, -h - 1.6).lineTo(w + 1.6, -h - 1.6).lineTo(w + 1.6, h + 1.6).lineTo(-w - 1.6, h + 1.6);
+      shape.holes.push(new THREE.Path().moveTo(-w - 0.6, -h - 0.6).lineTo(-w - 0.6, h + 0.6).lineTo(w + 0.6, h + 0.6).lineTo(w + 0.6, -h - 0.6));
+      obj = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: colour, transparent: true }));
+      obj.position.set(cx, cy, cz + 0.2);
+      at = new THREE.Vector3(cx + w + 1.6, cy + h + 1.6, cz + 0.2);
+    } else {
+      obj = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12),
+        new THREE.MeshBasicMaterial({ color: colour, depthTest: false, transparent: true }));
+      at = onSurface(robot, node, where.offset, out);
+      obj.position.copy(at);
+    }
+    obj.renderOrder = 10;
+    obj.raycast = () => {}; // not in the way of the next markers' rays
+    node.add(obj);
     const box = document.createElement('div'); // placed by CSS2DRenderer
     const el = document.createElement('div'); // moved down by spread() when labels overlap
     el.className = 'label';
-    if (items.length === 1) el.textContent = items[0].name;
-    else {
-      el.classList.add('group');
-      el.textContent = items.length + ' parts';
-      el.title = items.map((p) => p.name).join(', ');
-    }
     box.append(el);
     const label = new CSS2DObject(box);
     label.center.set(0, 0.5); // the label starts at the dot
-    label.position.fromArray(where.offset);
+    label.position.copy(at);
     node.add(label);
-    const m = { ids: items.map((p) => p.id), items, dot, label, el, colour };
+    const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, out, shown: [] };
     markers.push(m);
-    if (items.length > 1) {
-      el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
-      el.addEventListener('click', (e) => { e.stopPropagation(); openPop(open === m && pinned ? null : m, true); });
-      el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(m); });
-      el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(null); });
-    }
+    el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (m.shown.length > 1) openPop(open === m && pinned ? null : m, true);
+      else if (m.shown.length) focus(m.shown[0], true);
+    });
+    el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && !pinned && m.shown.length > 1) openPop(m); });
+    el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(null); });
   }
 }
 
-// The list of a group's parts, next to its label.
+// The list of a group's parts, next to its label; a row picks its part.
 const pop = document.createElement('div');
 pop.id = 'pop';
 pop.hidden = true;
@@ -284,13 +344,14 @@ function openPop(m, pin = false) {
   pinned = !!m && pin;
   pop.hidden = !m;
   if (!m) return;
-  const used = picked ? new Set(picked.uses.map((u) => u.part)) : null;
-  pop.replaceChildren(...m.items.map((p) => {
+  pop.replaceChildren(...m.shown.map((p) => {
     const row = document.createElement('div');
-    row.className = 'row' + (used && !used.has(p.id) ? ' dimmed' : used ? ' used' : '');
+    row.className = 'row';
     const k = document.createElement('span');
     k.className = 'kind ' + p.kind; k.textContent = p.kind;
     row.append(p.name, k);
+    row.addEventListener('pointerdown', (e) => e.stopPropagation());
+    row.addEventListener('click', (e) => { e.stopPropagation(); focus(p, true); });
     return row;
   }));
   placePop();
@@ -306,25 +367,49 @@ function placePop() {
 }
 stage.addEventListener('click', () => { if (open) openPop(null); });
 
-const world = new THREE.Vector3(), toCam = new THREE.Vector3(), out = new THREE.Vector3();
+// listed: the entries the panel lists (the app's uses, or all); a feature (with) shows on its parts.
+const listed = () => (picked ? picked.uses.map((u) => byId.get(u.part)).filter(Boolean) : parts);
+function shownOn(m) {
+  const ids = new Set(listed().filter((p) => selected.has(p.id)).map((p) => p.id));
+  const shown = m.items.filter((p) => ids.has(p.id));
+  for (const p of parts) if (p.with && ids.has(p.id) && p.with.some((w) => m.ids.includes(w)) && !shown.length) shown.push(...m.items.filter((q) => p.with.includes(q.id)));
+  return shown;
+}
+// updateMarkers sets each marker's label and shows the selected ones (on selection changes).
 function updateMarkers() {
-  const show = markersBox.checked;
-  const used = picked ? new Set(picked.uses.map((u) => u.part)) : null;
   for (const m of markers) {
-    const on = !used || m.ids.some((id) => used.has(id));
-    m.dot.visible = show;
-    m.label.visible = show;
-    if (!show && open === m) openPop(null);
-    m.el.classList.toggle('used', !!used && on);
-    m.el.classList.toggle('dimmed', !on);
-    m.dot.material.color.copy(on ? m.colour : new THREE.Color(css('--dim')));
-    m.dot.scale.setScalar(used && on ? 1.5 : 1);
-    m.dot.material.opacity = on ? 1 : 0.5;
-    // A label on the far side of the robot fades.
-    m.dot.getWorldPosition(world);
-    out.set(world.x, 0, world.z);
-    toCam.copy(camera.position).sub(world).setY(0);
-    m.el.classList.toggle('behind', out.lengthSq() > 1e-10 && out.dot(toCam) < 0);
+    m.shown = shownOn(m);
+    const on = m.shown.length > 0;
+    m.obj.visible = on;
+    m.label.visible = on;
+    if (!on && open === m) openPop(null);
+    if (!on && focused === m) focused = null;
+    m.el.classList.toggle('group', m.shown.length > 1);
+    m.el.textContent = m.shown.length > 1 ? m.shown.length + ' parts' : m.shown.length ? m.shown[0].name : '';
+    m.el.title = m.shown.map((p) => p.name).join(', ');
+    m.el.classList.toggle('used', !!picked);
+    m.el.classList.toggle('focus', focused === m);
+  }
+  const ids = listed().map((p) => p.id);
+  const n = ids.filter((id) => selected.has(id)).length;
+  markersBox.checked = n === ids.length;
+  markersBox.indeterminate = n > 0 && n < ids.length;
+}
+// Each frame: a marker on a side facing away (its out, turned with the robot) fades; the focused
+// one pulses.
+const world = new THREE.Vector3(), toCam = new THREE.Vector3(), out = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
+function frameMarkers(now) {
+  for (const m of markers) {
+    if (!m.obj.visible) continue;
+    const f = focused === m;
+    m.obj.getWorldPosition(world);
+    out.copy(m.out).applyAxisAngle(yAxis, turntable.rotation.y);
+    toCam.copy(camera.position).sub(world).normalize();
+    const behind = out.dot(toCam) < -0.05;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 180);
+    if (m.obj.geometry.type === 'SphereGeometry') m.obj.scale.setScalar(f ? 1.6 + 0.6 * pulse : picked ? 1.3 : 1);
+    m.obj.material.opacity = behind ? 0.25 : f ? 0.7 + 0.3 * pulse : 1;
+    m.el.classList.toggle('behind', behind);
   }
 }
 
@@ -333,7 +418,7 @@ const screenPos = new THREE.Vector3();
 function spread() {
   const w = stage.clientWidth, h = stage.clientHeight, placed = [];
   const shown = markers.filter((m) => m.label.visible).map((m) => {
-    m.dot.getWorldPosition(screenPos).project(camera);
+    m.label.getWorldPosition(screenPos).project(camera);
     return { m, x: (screenPos.x + 1) / 2 * w + 8, y: (1 - screenPos.y) / 2 * h, wd: m.el.offsetWidth, ht: m.el.offsetHeight };
   }).sort((a, b) => a.y - b.y);
   for (const l of shown) {
@@ -351,7 +436,26 @@ function spread() {
   }
 }
 
-// The panel: all parts, or the picked app's uses.
+// focus: a part picked in the list (or on its label): checked, its marker turned to the front,
+// pulsing, its servo moving; fromStage: its row scrolled into view.
+function focus(p, fromStage = false) {
+  if (!selected.has(p.id)) { selected.add(p.id); const cb = panel.querySelector(`input[data-id="${p.id}"]`); if (cb) cb.checked = true; }
+  const target = p.with ? p.with[0] : p.id;
+  focused = markers.find((m) => m.ids.includes(target)) || null;
+  updateMarkers();
+  panel.querySelectorAll('li.active').forEach((x) => x.classList.remove('active'));
+  const li = panel.querySelector(`li[data-id="${p.id}"]`);
+  if (li) { li.classList.add('active'); if (fromStage) li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  showMove(target);
+  if (focused) {
+    faceTo(focused.out);
+    focused.el.classList.remove('flash'); void focused.el.offsetWidth; focused.el.classList.add('flash');
+    if (!fromStage) openPop(focused.shown.length > 1 ? focused : null, true);
+  }
+}
+
+// The panel: the apps (each a link, #id), then all parts, or the picked app and its uses; each
+// entry with a checkbox (show it on the robot), All checks or clears the list.
 const sourceLink = (s) => {
   const a = document.createElement('a');
   a.href = `https://github.com/mj41/${s.repo}/blob/${s.ref}/${s.path}#L${s.line}`;
@@ -366,8 +470,22 @@ function sources(list) {
   list.forEach((s, i) => { if (i) div.append(', '); div.append(sourceLink(s)); });
   return div;
 }
+const link = (href, text, external = true) => {
+  const a = document.createElement('a');
+  a.href = href; a.textContent = text;
+  if (external) { a.target = '_blank'; a.rel = 'noopener'; }
+  return a;
+};
 function item(p, does, srcs) {
   const li = document.createElement('li');
+  li.dataset.id = p.id;
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.dataset.id = p.id; cb.checked = selected.has(p.id);
+  cb.title = 'Show on the robot';
+  cb.setAttribute('aria-label', 'Show ' + p.name + ' on the robot');
+  cb.addEventListener('click', (e) => e.stopPropagation());
+  cb.addEventListener('change', () => { if (cb.checked) selected.add(p.id); else selected.delete(p.id); updateMarkers(); });
+  const body = document.createElement('div');
   const head = document.createElement('div');
   const name = document.createElement('span');
   name.className = 'name'; name.textContent = p.name;
@@ -376,32 +494,34 @@ function item(p, does, srcs) {
   head.append(name, kind);
   const d = document.createElement('div');
   d.className = 'does'; d.textContent = does;
-  li.append(head, d);
-  if (!picked) {
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    meta.textContent = p.chip + (p.where ? ' · ' + p.where.note : ' · where: not in the docs');
-    li.append(meta);
-  }
-  li.append(sources(srcs));
-  li.addEventListener('click', () => {
-    panel.querySelectorAll('li.active').forEach((x) => x.classList.remove('active'));
-    li.classList.add('active');
-    showMove(p.id);
-    const m = markers.find((m) => m.ids.includes(p.id));
-    if (m) {
-      m.el.classList.remove('flash'); void m.el.offsetWidth; m.el.classList.add('flash');
-      openPop(m.items.length > 1 ? m : null, true);
-    }
-  });
+  body.append(head, d);
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const where = p.with ? 'a feature of ' + p.with.map((w) => byId.get(w).name).join(' and ')
+    : p.where ? p.where.note : 'where: not in the docs';
+  meta.textContent = picked ? (p.with || !p.where ? where : '') : p.chip + ' · ' + where;
+  if (meta.textContent) body.append(meta);
+  body.append(sources(srcs));
+  li.append(cb, body);
+  li.addEventListener('click', (e) => { if (!e.target.closest('a')) focus(p); });
   return li;
+}
+function appLinks(a) {
+  const div = document.createElement('div');
+  div.className = 'links';
+  if (a.web) div.append(link(a.web, new URL(a.web).host + ' ↗'));
+  div.append(link(`https://github.com/mj41/${a.repo}`, a.repo + ' ↗'));
+  return div;
 }
 function render() {
   panel.replaceChildren();
+  selected.clear();
+  for (const p of listed()) selected.add(p.id);
+  focused = null;
   if (picked) {
     const h = document.createElement('h2'); h.textContent = picked.name;
     const about = document.createElement('p'); about.className = 'about'; about.textContent = picked.about;
-    panel.append(h, about, sources(picked.sources));
+    panel.append(h, about, appLinks(picked), sources(picked.sources));
     if (picked.leds) {
       const l = document.createElement('p'); l.className = 'about';
       const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = picked.leds.color;
@@ -412,6 +532,14 @@ function render() {
     for (const u of picked.uses) ul.append(item(byId.get(u.part), u.does, u.sources));
     panel.append(ul);
   } else {
+    const h = document.createElement('h2'); h.textContent = 'Apps';
+    const ul = document.createElement('ul'); ul.className = 'apps';
+    for (const a of apps) {
+      const li = document.createElement('li');
+      li.append(link('#' + a.id, a.name, false), ' — ' + a.about + ' ', appLinks(a));
+      ul.append(li);
+    }
+    panel.append(h, ul);
     for (const kind of ['sensor', 'actuator']) {
       const h = document.createElement('h2'); h.textContent = kind === 'sensor' ? 'Sensors' : 'Actuators';
       const ul = document.createElement('ul'); ul.className = 'items';
@@ -419,7 +547,7 @@ function render() {
       panel.append(h, ul);
     }
   }
-  const unplaced = parts.filter((p) => !p.where && (!picked || picked.uses.some((u) => u.part === p.id)));
+  const unplaced = listed().filter((p) => !p.where && !p.with);
   if (unplaced.length) {
     const p = document.createElement('p'); p.className = 'unplaced';
     p.textContent = 'Not marked on the model (the docs do not say where): ' + unplaced.map((p) => p.name).join(', ') + '.';
@@ -427,23 +555,37 @@ function render() {
   }
   setLEDs(picked ? picked.leds : null);
   updateMarkers();
-  if (open) openPop(open, pinned);
+  if (open) openPop(null);
 }
 
-markersBox.addEventListener('change', updateMarkers);
-appSelect.addEventListener('change', () => {
-  picked = apps.find((a) => a.id === appSelect.value) || null;
-  history.replaceState(null, '', picked ? '#' + picked.id : location.pathname);
-  render();
+// All: checks or clears every entry of the list.
+markersBox.addEventListener('change', () => {
+  for (const p of listed()) if (markersBox.checked) selected.add(p.id); else selected.delete(p.id);
+  panel.querySelectorAll('input[data-id]').forEach((cb) => { cb.checked = selected.has(cb.dataset.id); });
+  updateMarkers();
 });
+// The app: from the address (#id), so each app has its own link; the picker changes it.
+function pickFromHash() {
+  const a = apps.find((a) => '#' + a.id === location.hash) || null;
+  if (a === picked && panel.childElementCount) return;
+  picked = a;
+  appSelect.value = a ? a.id : '';
+  render();
+}
+appSelect.addEventListener('change', () => {
+  if (appSelect.value) location.hash = appSelect.value;
+  else { history.pushState(null, '', location.pathname + location.search); pickFromHash(); }
+});
+window.addEventListener('hashchange', pickFromHash);
 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (!drag && !open && now > idleAt) turntable.rotation.y += spin * dt; // held while a list is open
+  if (autoTurn && !drag && !open) turntable.rotation.y += spin * dt; // held while a list is open
+  turning(now);
   pose(now);
-  if (markers.length) updateMarkers();
+  frameMarkers(now);
   renderer.render(scene, camera);
   labels.render(scene, camera);
   spread();
@@ -466,14 +608,12 @@ async function main() {
   const robot = gltf.scene;
   robot.traverse((o) => { if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; } });
   lightLEDs(robot);
+  addMarkers(robot, (gltf.parser.json.extras || {}).screen); // at rest, before it turns
   turntable.add(robot);
   yawNode = robot.getObjectByName('yaw');
   headNode = robot.getObjectByName('head');
   measure(robot);
-  addMarkers(robot);
-  const fromHash = apps.find((a) => '#' + a.id === location.hash);
-  if (fromHash) { appSelect.value = fromHash.id; picked = fromHash; }
-  render();
+  pickFromHash();
   status.remove();
 }
 main().catch((e) => { status.textContent = 'Could not load the robot: ' + e.message; console.error(e); });

@@ -74,6 +74,15 @@ view (add `#app` for an app's LEDs); `go run ./cmd/pagecheck -views all -o dir` 
 Before/after pairs of each change to the model's look are in `tests/visual/`. The glTF's test
 counts each part's open edges (must not grow) and triangles wound against their normals (none).
 
+**Picking and showing parts.** Each app has its own address (`#raw`, `#pet`, `#focus`); the panel
+lists the app's parts (or all) with a checkbox each, and All checks or clears them: only the
+checked ones are marked on the robot. A pick in the list (or on a marker) turns that side of the
+robot to the front, stops the turning (the button above the robot starts it again, a drag stops
+it too) and makes its marker pulse. Markers sit on the robot's surface, where a ray from outside
+along the entry's `out` meets it; the screen's entries outline the screen; a feature (`with`,
+e.g. the servos' feedback) shows on its parts. The header links the Stackchan sites (s.w42.eu,
+sm.w42.eu and the apps' own sites).
+
 A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
 
 ## License

@@ -12,3 +12,7 @@ github.com/mj41/s-w42-eu-assets v0.0.0-20261009221709-9448ef813d81 h1:sEaU8IQ9XQ
 github.com/mj41/s-w42-eu-assets v0.0.0-20261009221709-9448ef813d81/go.mod h1:m8CD5eCkRtSrckrl3q8Xav6hrsjv6WZyV7XfdbXrn8E=
 github.com/mj41/s-w42-eu-assets v0.0.0-20261009222334-90ac85c6e451 h1:TmGcs3wv6XvK09pVS/hzjyXqtl9g+lqd+5+lh6GRZiE=
 github.com/mj41/s-w42-eu-assets v0.0.0-20261009222334-90ac85c6e451/go.mod h1:m8CD5eCkRtSrckrl3q8Xav6hrsjv6WZyV7XfdbXrn8E=
+github.com/mj41/s-w42-eu-assets v0.0.0-20261009224129-802af0631608 h1:0R2yABGs373VcWnTVCjGMdlwioPxR2+YnDDITRCQByM=
+github.com/mj41/s-w42-eu-assets v0.0.0-20261009224129-802af0631608/go.mod h1:m8CD5eCkRtSrckrl3q8Xav6hrsjv6WZyV7XfdbXrn8E=
+github.com/mj41/s-w42-eu-assets v0.0.0-20261009224334-d6e02d20bac8 h1:pzw6vSoHnqi/8cHFOul0nzXV6XmvktGk5impwqDZa1s=
+github.com/mj41/s-w42-eu-assets v0.0.0-20261009224334-d6e02d20bac8/go.mod h1:m8CD5eCkRtSrckrl3q8Xav6hrsjv6WZyV7XfdbXrn8E=

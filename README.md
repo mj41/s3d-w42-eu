@@ -75,7 +75,7 @@ the robot (`../StackChan/app/assets/stack_chan_model.glb`, beside this repo afte
 (left) and ours (right) from the same views, both 70.5 mm high (`compare-<view>.png`; not kept
 here: the pictures show M5Stack's model).
 
-**Comparing with photos.** `?view=front|back|left|right|head|leds|top` holds the robot at a fixed
+**Comparing with photos.** `?view=front|back|left|right|head|leds|top|photo|seam` holds the robot at a fixed
 view (add `#app` for an app's LEDs); `go run ./cmd/pagecheck -views all -o dir` saves each.
 Before/after pairs of each change to the model's look are in `tests/visual/`. The glTF's test
 counts each part's open edges (must not grow) and triangles wound against their normals (none).

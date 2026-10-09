@@ -244,6 +244,23 @@ func (b *builder) material(m material) int {
 	return len(b.doc.Materials) - 1
 }
 
+// orient winds each triangle counter-clockwise seen from the side its normals point to, as glTF
+// wants: a triangle wound the other way is seen from its back, and a double-sided material then
+// lights it with its normals turned inward (dark, as if a hole), e.g. the -X, -Y and -Z faces of
+// robot3d's drawn boxes (the CoreS3, the back panel, the LED bars, the pitch servo).
+func orient(positions, normals []robot3d.V3) ([]robot3d.V3, []robot3d.V3) {
+	pos := append([]robot3d.V3(nil), positions...)
+	nrm := append([]robot3d.V3(nil), normals...)
+	for i := 0; i+2 < len(pos); i += 3 {
+		face := pos[i+1].Sub(pos[i]).Cross(pos[i+2].Sub(pos[i]))
+		if face.Dot(nrm[i].Add(nrm[i+1]).Add(nrm[i+2])) < 0 {
+			pos[i+1], pos[i+2] = pos[i+2], pos[i+1]
+			nrm[i+1], nrm[i+2] = nrm[i+2], nrm[i+1]
+		}
+	}
+	return pos, nrm
+}
+
 // linear turns an 8-bit sRGB channel into glTF's linear colour factor.
 func linear(c uint8) float64 {
 	s := float64(c) / 255
@@ -322,6 +339,7 @@ func build(parts []robot3d.Part, pivot, centre robot3d.V3, w, h float64, screenP
 		if len(p.Positions) == 0 || len(p.Positions)%3 != 0 || len(p.Normals) != len(p.Positions) {
 			return nil, fmt.Errorf("part %s: %d positions, %d normals", p.Name, len(p.Positions), len(p.Normals))
 		}
+		p.Positions, p.Normals = orient(p.Positions, p.Normals)
 		if surface != nil && textured[p.Name] {
 			// Each triangle on the face of the part's bounds it faces, its texels from surface.
 			a := layout(bounds(p.Positions))

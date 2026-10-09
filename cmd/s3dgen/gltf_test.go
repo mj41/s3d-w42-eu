@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"image/png"
 	"math"
@@ -125,6 +126,22 @@ func triangles(t *testing.T, doc document, bin []byte, mesh int) []robot3d.V3 {
 	return out
 }
 
+// normals gives a mesh's normals in index order, like triangles.
+func normals(t *testing.T, doc document, bin []byte, mesh int) []robot3d.V3 {
+	t.Helper()
+	pr := doc.Meshes[mesh].Primitives[0]
+	na, ia := doc.Accessors[pr.Attributes["NORMAL"]], doc.Accessors[pr.Indices]
+	nv, iv := doc.BufferViews[na.BufferView], doc.BufferViews[ia.BufferView]
+	nb, ib := bin[nv.ByteOffset:nv.ByteOffset+nv.ByteLength], bin[iv.ByteOffset:iv.ByteOffset+iv.ByteLength]
+	f := func(o int) float64 { return float64(math.Float32frombits(binary.LittleEndian.Uint32(nb[o:]))) }
+	out := make([]robot3d.V3, ia.Count)
+	for i := range out {
+		j := int(binary.LittleEndian.Uint32(ib[4*i:]))
+		out[i] = robot3d.V3{X: f(12 * j), Y: f(12*j + 4), Z: f(12*j + 8)}
+	}
+	return out
+}
+
 func near(a, b robot3d.V3, tol float64) bool { return a.Sub(b).Len() <= tol }
 
 func export(t *testing.T) (document, []byte) {
@@ -171,14 +188,16 @@ func TestPartsPlaced(t *testing.T) {
 			t.Errorf("%s: %d vertices, robot3d %d", p.Name, len(got), len(p.Positions))
 			continue
 		}
-		bad := 0
-		for i, v := range got {
-			if !near(at[p.Name].point(v), p.Positions[i], 1e-4) {
+		bad := 0 // a triangle's last two vertices may be swapped (orient)
+		for i := 0; i < len(got); i += 3 {
+			a, b, c := at[p.Name].point(got[i]), at[p.Name].point(got[i+1]), at[p.Name].point(got[i+2])
+			q := p.Positions[i : i+3]
+			if !near(a, q[0], 1e-4) || !(near(b, q[1], 1e-4) && near(c, q[2], 1e-4) || near(b, q[2], 1e-4) && near(c, q[1], 1e-4)) {
 				bad++
 			}
 		}
 		if bad > 0 {
-			t.Errorf("%s: %d of %d vertices not where robot3d has them", p.Name, bad, len(got))
+			t.Errorf("%s: %d of %d triangles not where robot3d has them", p.Name, bad, len(got)/3)
 		}
 	}
 }
@@ -366,5 +385,69 @@ func TestTextures(t *testing.T) {
 		if !found {
 			t.Errorf("%s: no triangle of %s at %+v", c.what, c.part, c.p)
 		}
+	}
+}
+
+// openEdgesMax is each part's most open edges (an edge of one triangle only: a hole in its
+// surface); it must not grow. All of robot3d's parts are closed now.
+var openEdgesMax = map[string]int{
+	"plate": 0, "servo": 0, "servo-cover": 0, "pitch-servo": 0, "body": 0, "core": 0,
+	"led-bar-left": 0, "led-bar-right": 0, "back-panel": 0,
+}
+
+// The exported parts have no holes: per part, its open edges (counted on the vertices at 0.1 µm)
+// no more than openEdgesMax, and no triangle wound against its normals (seen from its back, a
+// double-sided material lights it inward: dark, like a hole).
+func TestMeshesClosed(t *testing.T) {
+	doc, bin := export(t)
+	type vk [3]int64
+	q := func(v robot3d.V3) vk {
+		return vk{int64(math.Round(v.X * 1e4)), int64(math.Round(v.Y * 1e4)), int64(math.Round(v.Z * 1e4))}
+	}
+	seen := 0
+	for _, n := range doc.Nodes {
+		if n.Mesh == nil || n.Name == "screen" {
+			continue
+		}
+		want, ok := openEdgesMax[n.Name]
+		if !ok {
+			t.Errorf("%s: not in openEdgesMax", n.Name)
+			continue
+		}
+		seen++
+		pos, nrm := triangles(t, doc, bin, *n.Mesh), normals(t, doc, bin, *n.Mesh)
+		edges := map[[2]vk]int{}
+		inward := 0
+		for i := 0; i < len(pos); i += 3 {
+			face := pos[i+1].Sub(pos[i]).Cross(pos[i+2].Sub(pos[i]))
+			if face.Dot(nrm[i].Add(nrm[i+1]).Add(nrm[i+2])) < 0 {
+				inward++
+			}
+			for k := 0; k < 3; k++ {
+				a, b := q(pos[i+k]), q(pos[i+(k+1)%3])
+				if a == b {
+					continue
+				}
+				if fmt.Sprint(a) > fmt.Sprint(b) {
+					a, b = b, a
+				}
+				edges[[2]vk{a, b}]++
+			}
+		}
+		open := 0
+		for _, c := range edges {
+			if c == 1 {
+				open++
+			}
+		}
+		if open > want {
+			t.Errorf("%s: %d open edges, at most %d", n.Name, open, want)
+		}
+		if inward > 0 {
+			t.Errorf("%s: %d of %d triangles wound against their normals", n.Name, inward, len(pos)/3)
+		}
+	}
+	if seen != len(openEdgesMax) {
+		t.Errorf("%d parts checked, openEdgesMax has %d", seen, len(openEdgesMax))
 	}
 }

@@ -59,7 +59,7 @@ func main() {
 	siteURL := flag.String("url", "", "check this site (default: build and start this repository's site)")
 	threeDir := flag.String("three-dir", "", "serve three.js from this copy of npm three in place of jsDelivr")
 	out := flag.String("o", "", "the directory for the screenshots (default: a new temporary one)")
-	viewsFlag := flag.String("views", "", "also screenshot these fixed views (comma-separated, or all: "+strings.Join(allViews, ",")+")")
+	viewsFlag := flag.String("views", "", "also screenshot these fixed views (comma-separated, or all: "+strings.Join(allViews, ",")+"; view#app with an app's LEDs)")
 	flag.Parse()
 
 	views := strings.Split(*viewsFlag, ",")
@@ -82,7 +82,7 @@ func main() {
 }
 
 // allViews are the page's fixed views (web/app.js: views).
-var allViews = []string{"front", "back", "left", "right", "head", "leds"}
+var allViews = []string{"front", "back", "left", "right", "head", "leds", "top"}
 
 func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error) {
 	chrome, err := findChrome(chromeFlag)
@@ -127,7 +127,8 @@ func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error)
 	return failed, nil
 }
 
-// shootView writes the 3D view alone (no markers, no hint) at 1200 px from a fixed view.
+// shootView writes the 3D view alone (no markers, no hint) at 1200 px from a fixed view; a name
+// like leds#focus shows an app (its LEDs).
 func shootView(b *browser, site, threeDir, out, name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -161,7 +162,7 @@ func shootView(b *browser, site, threeDir, out, name string) error {
 	if err != nil {
 		return err
 	}
-	file := filepath.Join(out, "view-"+name+".png")
+	file := filepath.Join(out, "view-"+strings.ReplaceAll(name, "#", "-")+".png")
 	if err := os.WriteFile(file, shot, 0o644); err != nil {
 		return err
 	}

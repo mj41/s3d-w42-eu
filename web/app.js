@@ -56,13 +56,14 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
-// A fixed view (?view=front|back|left|right|head|leds, for comparing with photos): the robot
+// A fixed view (?view=front|back|left|right|head|leds|top, for comparing with photos): the robot
 // turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
 // (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
 const views = {
   front: { yaw: 0 }, back: { yaw: 180 }, left: { yaw: -90 }, right: { yaw: 90 },
   head: { yaw: -30, elevation: 20, zoom: 0.55, aim: 0.72 },
   leds: { yaw: -55, elevation: 38, zoom: 0.45, aim: 0.95 },
+  top: { yaw: 0, elevation: 70, zoom: 0.6, aim: 0.95 },
 };
 const view = views[new URLSearchParams(location.search).get('view')] || null;
 if (view && view.elevation !== undefined) elevation = view.elevation * deg;
@@ -72,49 +73,77 @@ function placeCamera() {
   camera.lookAt(target);
 }
 
-// The LEDs glow: their bars lit in the LEDs' colour, and over each of the 12 LEDs (six along each
-// bar, as robot3d places them) a soft glow that adds light, hidden where the head is in front.
+// The LEDs, as robot3d draws them (s-w42-eu-assets robot3d/shade.go: ledBar, barGlow): six
+// under each bar (on the left, +X, LED 0 at the front; on the right LED 11 at the front). A lit
+// LED's part of its bar shows its colour (0.35 of it, and 0.75 as its own light), an unlit one
+// the bar's milky plastic (its colour in robot.glb); on the shell's sides a lit LED adds its light
+// round the bar, fading over about a millimetre (0.35 exp(-d / 1.1 mm), out to 4 mm). Only the
+// colours change: an app's leds from data (each LED, or one colour for all), else ledDefault.
 const ledDefault = '#7fd4f5'; // as on the photos of a real robot (light blue)
-const ledMaterials = [], ledGlows = [];
-const glowTexture = (() => {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  r.addColorStop(0, 'rgba(255,255,255,1)');
-  r.addColorStop(0.25, 'rgba(255,255,255,0.55)');
-  r.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = r;
-  g.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
-})();
-function setLEDs(hex) {
-  const c = new THREE.Color(hex);
-  for (const m of ledMaterials) { m.color.copy(c); m.emissive.copy(c); }
-  for (const g of ledGlows) g.material.color.copy(c);
+const ledUniforms = {
+  uLed: { value: Array.from({ length: 12 }, () => new THREE.Color()) },
+  uLedOn: { value: new Array(12).fill(0) },
+  uBar: { value: new THREE.Vector4() }, // the bars' z0, z1, y0, y1 at rest (mm), from robot.glb
+};
+// ledColors gives the 12 LEDs' colours ('' or null: off) from an app's leds: each, robot3d's
+// -leds form ("#rrggbb*12", or 12 comma-separated, empty for off), or color for all.
+function ledColors(leds) {
+  if (!leds) return new Array(12).fill(ledDefault);
+  if (!leds.each) return new Array(12).fill(leds.color);
+  const all = /^(#[0-9a-f]{6})\*12$/.exec(leds.each);
+  return all ? new Array(12).fill(all[1]) : leds.each.split(',');
+}
+function setLEDs(leds) {
+  ledColors(leds).forEach((hex, i) => {
+    ledUniforms.uLedOn.value[i] = hex ? 1 : 0;
+    if (hex) ledUniforms.uLed.value[i].set(hex);
+  });
+}
+const ledGLSL = `
+uniform vec3 uLed[12];
+uniform float uLedOn[12];
+uniform vec4 uBar;
+varying vec3 vRest;
+varying vec3 vRestNormal;
+int ledAt(float z, bool left) {
+  int k = int(clamp((uBar.y - z) / ((uBar.y - uBar.x) / 6.0), 0.0, 5.0));
+  return left ? k : 11 - k;
+}
+`;
+// withLEDs patches a material: the bar's (bar true) or the shell's glow round the bars.
+function withLEDs(material, bar) {
+  material = material.clone();
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, ledUniforms);
+    shader.vertexShader = 'varying vec3 vRest;\nvarying vec3 vRestNormal;\n' + shader.vertexShader.replace(
+      '#include <begin_vertex>', '#include <begin_vertex>\nvRest = position;\nvRestNormal = normal;');
+    const lit = bar ? `
+      int k = ledAt(vRest.z, vRest.x > 0.0);
+      if (uLedOn[k] > 0.5) { diffuseColor.rgb = uLed[k] * 0.35; totalEmissiveRadiance += uLed[k] * 0.75; }` : `
+      if (abs(vRestNormal.x) > 0.97 && abs(vRest.x) > 26.0) {
+        float dz = max(0.0, max(uBar.x - vRest.z, vRest.z - uBar.y));
+        float dy = max(0.0, max(uBar.z - vRest.y, vRest.y - uBar.w));
+        float d = length(vec2(dz, dy));
+        int k = ledAt(clamp(vRest.z, uBar.x, uBar.y), vRest.x > 0.0);
+        if (d < 4.0 && uLedOn[k] > 0.5) totalEmissiveRadiance += uLed[k] * 0.35 * exp(-d / 1.1);
+      }`;
+    shader.fragmentShader = ledGLSL + shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>' + lit);
+  };
+  material.customProgramCacheKey = () => (bar ? 'led-bar' : 'led-glow');
+  return material;
 }
 function lightLEDs(robot) {
+  const bar = robot.getObjectByName('led-bar-left');
+  bar.geometry.computeBoundingBox();
+  const { min, max } = bar.geometry.boundingBox; // millimetres at rest, the bar along Z
+  ledUniforms.uBar.value.set(min.z, max.z, min.y, max.y);
   for (const name of ['led-bar-left', 'led-bar-right']) {
-    const bar = robot.getObjectByName(name);
-    if (!bar) continue;
-    const material = new THREE.MeshStandardMaterial({ emissiveIntensity: 1.4, roughness: 0.4 });
-    bar.material = material;
-    ledMaterials.push(material);
-    bar.geometry.computeBoundingBox();
-    const { min, max } = bar.geometry.boundingBox; // millimetres, the bar along Z
-    const out = Math.sign(min.x + max.x) * 0.8; // a little outside the bar
-    for (let k = 0; k < 6; k++) {
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: glowTexture, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85,
-      }));
-      glow.position.set((min.x + max.x) / 2 + out, max.y + 0.3, max.z - (k + 0.5) * (max.z - min.z) / 6);
-      glow.scale.set(11, 11, 1);
-      glow.renderOrder = 5;
-      bar.add(glow);
-      ledGlows.push(glow);
-    }
+    const o = robot.getObjectByName(name);
+    o.material = withLEDs(o.material, true);
   }
-  setLEDs(ledDefault);
+  const body = robot.getObjectByName('body');
+  body.material = withLEDs(body.material, false);
+  setLEDs(null);
 }
 
 function resize() {
@@ -396,7 +425,7 @@ function render() {
     p.textContent = 'Not marked on the model (the docs do not say where): ' + unplaced.map((p) => p.name).join(', ') + '.';
     panel.append(p);
   }
-  setLEDs(picked && picked.leds ? picked.leds.color : ledDefault);
+  setLEDs(picked ? picked.leds : null);
   updateMarkers();
   if (open) openPop(open, pinned);
 }

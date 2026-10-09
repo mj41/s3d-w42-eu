@@ -69,9 +69,13 @@ type Use struct {
 	Sources []Source `json:"sources"`
 }
 
-// LEDs is the colour an app's LEDs show on the page (#rrggbb), and why.
+// LEDs is the colour an app's LEDs show on the page (#rrggbb), and why. Each, if given, is each
+// LED's colour in robot3d's -leds form (s-w42-eu-assets renders.json): "#rrggbb*12", or 12
+// comma-separated colours numbered as the robot's leds command does (left 0-5, right 6-11; 0 and
+// 11 at the front), empty for an unlit LED; Color is then the colour of its lit ones.
 type LEDs struct {
 	Color   string   `json:"color"`
+	Each    string   `json:"each,omitempty"`
 	Does    string   `json:"does"`
 	Sources []Source `json:"sources"`
 }

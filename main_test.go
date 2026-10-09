@@ -135,6 +135,19 @@ func TestApps(t *testing.T) {
 			if !regexp.MustCompile(`^#[0-9a-f]{6}$`).MatchString(l.Color) || l.Does == "" || len(l.Sources) == 0 {
 				t.Errorf("%s: leds %+v: a #rrggbb colour, what it shows and a source are needed", a.ID, l)
 			}
+			if l.Each != "" {
+				each := strings.Split(l.Each, ",")
+				if m := regexp.MustCompile(`^(#[0-9a-f]{6})\*12$`).FindStringSubmatch(l.Each); m != nil {
+					each = []string{m[1]}
+				} else if len(each) != 12 {
+					t.Errorf("%s: leds each %q: 12 LEDs, not %d", a.ID, l.Each, len(each))
+				}
+				for _, c := range each {
+					if c != "" && c != l.Color {
+						t.Errorf("%s: leds each %q: %q, its colour is %s", a.ID, l.Each, c, l.Color)
+					}
+				}
+			}
 			for _, s := range l.Sources {
 				checkSource(t, a.ID+" leds", s)
 			}

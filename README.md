@@ -63,9 +63,16 @@ s-w42-eu-assets at the commit that has it (branch `claude/robot3d-interior` ther
 the head as on the photos: the servo body's top cover and the black pitch servo); once that is in
 its `main`, `go get` the merge.
 
-**The page's light.** The robot casts a soft shadow on the ground, and its LEDs glow (the bars lit
-and a soft glow over each of the 12 LEDs): light blue as on the photos of a real robot, or the
-colour an app's `leds` gives (with its sources), e.g. Focus's red while focusing.
+**The page's light.** The robot casts a soft shadow on the ground, and its 12 LEDs light their
+bars as robot3d draws them (six under each bar; a lit LED shows its colour and lights the shell
+round the bar a little, an unlit one the bar's milky plastic): light blue as on the photos of a
+real robot, or what an app's `leds` gives (with its sources): one `color` for all, or `each` LED
+in robot3d's `-leds` form, e.g. Focus's 4 + 4 red while focusing.
+
+**Comparing with photos.** `?view=front|back|left|right|head|leds|top` holds the robot at a fixed
+view (add `#app` for an app's LEDs); `go run ./cmd/pagecheck -views all -o dir` saves each.
+Before/after pairs of each change to the model's look are in `tests/visual/`. The glTF's test
+counts each part's open edges (must not grow) and triangles wound against their normals (none).
 
 A new app is a new `data/apps/<app>.json`; a new sensor a new entry in `data/parts.json`.
 

@@ -93,6 +93,12 @@ func TestParts(t *testing.T) {
 			continue
 		}
 		w := e.Where
+		if sh := w.Shape; sh != nil {
+			ok := sh.Kind == "circle" && sh.R > 0 && sh.R < 40 || sh.Kind == "rect" && sh.W > 0 && sh.H > 0 && sh.W < 60 && sh.H < 60 && sh.R >= 0 && sh.R <= min(sh.W, sh.H)/2
+			if !ok {
+				t.Errorf("%s: shape %+v: a circle (r) or a rect (w, h, r up to half of the smaller)", e.ID, *sh)
+			}
+		}
 		if w.Area != "" && w.Area != "screen" {
 			t.Errorf("%s: area %q", e.ID, w.Area)
 		}

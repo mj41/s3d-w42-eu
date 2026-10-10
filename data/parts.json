@@ -1,5 +1,5 @@
 {
- "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own). A where's source may be M5Stack's annotated picture of the robot (StackChan docs): its label quoted.",
+ "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own). A where's source may be M5Stack's annotated picture of the robot (StackChan docs): its label quoted. shape: its outline on the robot (mm, on the surface facing out): a circle (r) or a rect (w across, h up, corners r); free: at the offset itself.",
  "parts": [
   {
    "id": "touch-screen",
@@ -82,6 +82,10 @@
      0,
      1
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 2.4
+    },
     "note": "under the screen, the ring (M5Stack's picture: GC0308 @0.3 megapixels; the ring as robot3d draws it)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -124,6 +128,10 @@
      0,
      1
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 1.2
+    },
     "note": "under the screen, the two outer dots (M5Stack's picture: DUAL MIC); marked at the one on the robot's left",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -166,6 +174,10 @@
      0,
      0
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 3
+    },
     "note": "the IMU sits in the CoreS3 (HARDWARE.md line 21): somewhere in the CoreS3, marked on its left side",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -227,6 +239,12 @@
      0,
      1
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 4.2,
+     "h": 1.8,
+     "r": 0.9
+    },
     "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -276,6 +294,12 @@
      0,
      1
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 4.2,
+     "h": 1.8,
+     "r": 0.9
+    },
     "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -301,7 +325,7 @@
    "where": {
     "part": "top-board",
     "offset": [
-     -8,
+     0,
      70.2,
      15.3
     ],
@@ -311,6 +335,12 @@
      1,
      0
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 34,
+     "h": 5,
+     "r": 1.5
+    },
     "note": "on the head's top behind the CoreS3 (M5Stack's picture: TOUCH PADS x 3)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -366,6 +396,10 @@
      1,
      0
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 0.8
+    },
     "note": "on the head's top behind the CoreS3, the small dot at the front of the middle tab (M5Stack's photos: IR Tx / Rx)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -424,6 +458,12 @@
      0,
      -1
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 20,
+     "h": 12,
+     "r": 2
+    },
     "note": "in the back, under the head's board (M5Stack's picture of the open back: 550 mAh BATTERY)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
@@ -475,6 +515,12 @@
      0,
      0
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 3.6,
+     "h": 9.6,
+     "r": 1.8
+    },
     "note": "the CoreS3's USB-C on its right side (the stand's port is not modelled)",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -513,6 +559,12 @@
      0,
      0
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 7.2,
+     "h": 6.4,
+     "r": 1.8
+    },
     "note": "on the CoreS3's right side",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -620,16 +672,21 @@
     "part": "servo",
     "offset": [
      0,
-     12,
+     12.5,
      0
     ],
     "how": "joint",
     "out": [
      0,
-     0,
-     1
+     1,
+     0
     ],
-    "note": "the yaw joint: the servo body turns on the plate about the yaw axis; marked on the turntable's front",
+    "shape": {
+     "kind": "circle",
+     "r": 25,
+     "free": true
+    },
+    "note": "the yaw joint: the servo body turns on the plate about the yaw axis; a ring round the turntable",
     "source": {
      "repo": "s-w42-eu-assets",
      "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
@@ -667,6 +724,10 @@
      0,
      0
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 3.5
+    },
     "note": "the pitch joint: robot3d's pitch pivot, the servo's horn; marked where its axis meets the head's left side",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -712,6 +773,12 @@
      0.3,
      0
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 30.5,
+     "h": 4.2,
+     "r": 2
+    },
     "note": "the left light bar (+X), along the top",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -757,6 +824,12 @@
      0.3,
      0
     ],
+    "shape": {
+     "kind": "rect",
+     "w": 30.5,
+     "h": 4.2,
+     "r": 2
+    },
     "note": "the right light bar (-X), along the top",
     "source": {
      "repo": "s-w42-eu-assets",
@@ -818,6 +891,10 @@
      1,
      0
     ],
+    "shape": {
+     "kind": "circle",
+     "r": 1.6
+    },
     "note": "on the head's top behind the CoreS3, in the round hole of the middle tab (M5Stack's photos: IR Tx / Rx)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",

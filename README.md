@@ -85,7 +85,8 @@ lists the app's parts (or all) with a checkbox each, and All checks or clears th
 checked ones are marked on the robot. A pick in the list (or on a marker) turns that side of the
 robot to the front, stops the turning (the button above the robot starts it again, a drag stops
 it too) and makes its marker pulse. Markers sit on the robot's surface, where a ray from outside
-along the entry's `out` meets it; the screen's entries outline the screen; a feature (`with`,
+along the entry's `out` meets it, drawn as the part's own outline (`shape`: a circle round the camera, a
+pill round the light sensor's windows, rounded rects round the ports and LED bars, a ring round the turntable); the screen's entries outline the screen; a feature (`with`,
 e.g. the servos' feedback) shows on its parts. The header links the Stackchan sites (s.w42.eu,
 sm.w42.eu and the apps' own sites).
 

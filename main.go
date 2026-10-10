@@ -44,11 +44,23 @@ type Source struct {
 type Where struct {
 	Part   string     `json:"part"`
 	Offset [3]float64 `json:"offset"`
-	How    string     `json:"how"`            // exact, joint, inside, near
-	Area   string     `json:"area,omitempty"` // screen: the screen's rectangle, outlined
-	Out    []float64  `json:"out,omitempty"`  // from where its marker is seen (at rest); none: out from the yaw axis
+	How    string     `json:"how"`             // exact, joint, inside, near
+	Area   string     `json:"area,omitempty"`  // screen: the screen's rectangle, outlined
+	Out    []float64  `json:"out,omitempty"`   // from where its marker is seen (at rest); none: out from the yaw axis
+	Shape  *Shape     `json:"shape,omitempty"` // its outline on the robot; none: a dot
 	Note   string     `json:"note"`
 	Source Source     `json:"source"`
+}
+
+// Shape is a part's outline on the robot (mm), on its surface facing out: a circle (r), or a
+// rect (w across, h up, corners rounded by r). Free: at the offset itself, not on the surface
+// (e.g. a ring round the turntable).
+type Shape struct {
+	Kind string  `json:"kind"` // circle, rect
+	R    float64 `json:"r,omitempty"`
+	W    float64 `json:"w,omitempty"`
+	H    float64 `json:"h,omitempty"`
+	Free bool    `json:"free,omitempty"`
 }
 
 // Part is a sensor or an actuator.

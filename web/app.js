@@ -287,6 +287,39 @@ function onSurface(robot, node, offset, out) {
   const hit = ray.intersectObject(robot, true).find((h) => h.object.isMesh);
   return node.worldToLocal((hit ? hit.point : p).clone());
 }
+// Outlines: a part is shown by its own shape on the robot (where.shape: a circle of radius r, or
+// a rect w x h with corners rounded by r, in mm), lying on the surface, facing out (its w across,
+// its h up; on top, its h toward the back): a frame and a faint fill. Without a shape, a dot.
+const frameT = 0.6; // the frame's width, mm
+function outlinePath(sh, grow) {
+  const p = new THREE.Shape();
+  if (sh.kind === 'circle') { p.absarc(0, 0, sh.r + grow, 0, Math.PI * 2, false); return p; }
+  const w = sh.w / 2 + grow, h = sh.h / 2 + grow, r = Math.min((sh.r || 0) + grow, w, h);
+  p.moveTo(-w + r, -h).lineTo(w - r, -h).absarc(w - r, -h + r, r, -Math.PI / 2, 0, false)
+    .lineTo(w, h - r).absarc(w - r, h - r, r, 0, Math.PI / 2, false)
+    .lineTo(-w + r, h).absarc(-w + r, h - r, r, Math.PI / 2, Math.PI, false)
+    .lineTo(-w, -h + r).absarc(-w + r, -h + r, r, Math.PI, Math.PI * 1.5, false);
+  return p;
+}
+function outline(sh, colour) {
+  const g = new THREE.Group();
+  const outer = outlinePath(sh, frameT);
+  outer.holes.push(outlinePath(sh, 0));
+  const mat = (opacity) => new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, side: THREE.DoubleSide });
+  const frame = new THREE.Mesh(new THREE.ShapeGeometry(outer, 24), mat(1));
+  const fill = new THREE.Mesh(new THREE.ShapeGeometry(outlinePath(sh, 0), 24), mat(0.16));
+  fill.userData.fill = true;
+  g.add(frame, fill);
+  return g;
+}
+// basis: right, up and out (the normal) of a surface facing out.
+function basis(out) {
+  const hint = Math.abs(out.y) > 0.9 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
+  const right = hint.clone().cross(out).normalize();
+  const up = out.clone().cross(right).normalize();
+  return { right, up };
+}
 function addMarkers(robot, screen) {
   const rank = { exact: 0, joint: 1, near: 2, inside: 3 };
   const groups = [];
@@ -314,6 +347,16 @@ function addMarkers(robot, screen) {
       obj = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: colour, transparent: true }));
       obj.position.set(cx, cy, cz + 0.2);
       at = new THREE.Vector3(cx + w + 1.6, cy + h + 1.6, cz + 0.2);
+    } else if (where.shape) { // its own shape on the surface
+      const sh = where.shape;
+      const centre = sh.free ? new THREE.Vector3().fromArray(where.offset) : onSurface(robot, node, where.offset, out);
+      centre.addScaledVector(out, 0.12);
+      const { right, up } = basis(out);
+      obj = outline(sh, colour);
+      obj.matrix.makeBasis(right, up, out).setPosition(centre);
+      obj.matrixAutoUpdate = false;
+      const hw = (sh.kind === 'circle' ? sh.r : sh.w / 2) + frameT, hh = (sh.kind === 'circle' ? sh.r : sh.h / 2) + frameT;
+      at = centre.clone().addScaledVector(right, hw * 0.75).addScaledVector(up, hh * 0.75);
     } else {
       obj = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 12),
         new THREE.MeshBasicMaterial({ color: colour, depthTest: false, transparent: true }));
@@ -321,7 +364,7 @@ function addMarkers(robot, screen) {
       obj.position.copy(at);
     }
     obj.renderOrder = 10;
-    obj.raycast = () => {}; // not in the way of the next markers' rays
+    obj.traverse((o) => { o.raycast = () => {}; }); // not in the way of the next markers' rays
     node.add(obj);
     const box = document.createElement('div'); // placed by CSS2DRenderer
     const el = document.createElement('div'); // moved down by spread() when labels overlap
@@ -418,8 +461,12 @@ function frameMarkers(now) {
     toCam.copy(camera.position).sub(world).normalize();
     const behind = out.dot(toCam) < -0.05;
     const pulse = 0.5 + 0.5 * Math.sin(now / 180);
-    if (m.obj.geometry.type === 'SphereGeometry') m.obj.scale.setScalar(f ? 1.6 + 0.6 * pulse : picked ? 1.3 : 1);
-    m.obj.material.opacity = behind ? 0.25 : f ? 0.7 + 0.3 * pulse : 1;
+    const a = behind ? 0.25 : f ? 0.7 + 0.3 * pulse : 1;
+    if (m.obj.isGroup) m.obj.children.forEach((c) => { c.material.opacity = c.userData.fill ? (f ? 0.18 + 0.22 * pulse : 0.16) * (behind ? 0.4 : 1) : a; });
+    else {
+      if (m.obj.geometry.type === 'SphereGeometry') m.obj.scale.setScalar(f ? 1.6 + 0.6 * pulse : picked ? 1.3 : 1);
+      m.obj.material.opacity = a;
+    }
     m.el.classList.toggle('behind', behind);
   }
 }

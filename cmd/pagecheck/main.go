@@ -112,7 +112,7 @@ func runCompare(chromeFlag, glb, threeDir, out string) error {
 }
 
 // allViews are the page's fixed views (web/app.js: views).
-var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam", "under", "bottom"}
+var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam", "under", "bottom", "led"}
 
 func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error) {
 	chrome, err := findChrome(chromeFlag)
@@ -620,6 +620,17 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	p.waitFor(ctx, `[...document.querySelectorAll('.label.focus')].some((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 3*time.Second)
 	p.Eval(ctx, `({Checked: document.querySelector('li[data-id="pitch-servo"] input').checked, Focus: (document.querySelector('.label.focus') || {}).textContent || ''})`, &again)
 	report(unchecked && again.Checked && again.Focus == "Head pitch servo", "a second click unchecks the row (%v), its checkbox picks it again: focused %q", unchecked, again.Focus)
+
+	// A part inside another (the IMU, in the CoreS3) is shown through it.
+	var inside string
+	p.Eval(ctx, `(() => { document.querySelector('li[data-id="imu"] .name').click(); return true; })()`, nil)
+	p.waitFor(ctx, `[...document.querySelectorAll('.label.focus')].some((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 3*time.Second)
+	time.Sleep(400 * time.Millisecond)
+	p.Eval(ctx, `(document.querySelector('.label.focus') || {}).textContent || ''`, &inside)
+	report(strings.HasPrefix(inside, "Accelerometer and gyroscope"), "a pick of the IMU (inside the CoreS3) shows it: focused %q", inside)
+	if shot, err := p.screenshot(ctx, nil); err == nil {
+		os.WriteFile(filepath.Join(out, "pagecheck-"+w.name+"-inside.png"), shot, 0o644)
+	}
 	// A pick of a part on the bottom (the power LED, in Raw data) tilts the view to show it from below.
 	var under struct{ Focus string }
 	p.Eval(ctx, `(() => { location.hash = 'raw'; return true; })()`, nil)

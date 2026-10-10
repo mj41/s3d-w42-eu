@@ -255,23 +255,21 @@
    "where": {
     "part": "core",
     "offset": [
-     6.5,
+     7.5,
      23.2,
      33.6
     ],
-    "how": "exact",
+    "how": "near",
     "out": [
      0,
      0,
      1
     ],
     "shape": {
-     "kind": "rect",
-     "w": 4.2,
-     "h": 1.8,
-     "r": 0.9
+     "kind": "circle",
+     "r": 0.75
     },
-    "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
+    "note": "the LTR-553's detector window, the outer of its two dots (the other, nearer the camera, taken as the proximity's IR LED; not in the docs)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "LTR-553ALS-WA"
@@ -314,7 +312,7 @@
      23.2,
      33.6
     ],
-    "how": "exact",
+    "how": "near",
     "out": [
      0,
      0,
@@ -322,14 +320,17 @@
     ],
     "shape": {
      "kind": "rect",
-     "w": 4.2,
-     "h": 1.8,
-     "r": 0.9
+     "w": 4.6,
+     "h": 1.9,
+     "r": 0.95
     },
-    "note": "under the screen, the pair of small dots right of the camera (M5Stack's picture: LTR-553ALS-WA; the dots as robot3d draws the CoreS3's front)",
+    "note": "under the screen, the LTR-553's two windows right of the camera: its IR LED (pulsing, s-w42-eu-raw readme line 303) and its detector; which dot is which is not in the docs",
     "source": {
-     "url": "https://docs.m5stack.com/en/StackChan",
-     "quote": "LTR-553ALS-WA"
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 303,
+     "quote": "whose IR LED next to the camera pulses"
     }
    }
   },
@@ -337,6 +338,11 @@
    "id": "head-touch",
    "name": "Head touch panel",
    "kind": "sensor",
+   "with": [
+    "head-touch-back",
+    "head-touch-middle",
+    "head-touch-front"
+   ],
    "chip": "Si12T",
    "does": "Three zones on the head: head_press with each zone's intensity (0–3), head_release with its duration, swipe forward/back; any of them wakes the screen.",
    "sources": [
@@ -347,13 +353,20 @@
      "line": 24,
      "quote": "| Head touch panel, 3 zones | Si12T (0x68)"
     }
-   ],
+   ]
+  },
+  {
+   "id": "head-touch-back",
+   "name": "Head touch, back zone (z0)",
+   "kind": "sensor",
+   "chip": "Si12T",
+   "does": "One of the head's three touch zones (z0, at the back): its intensity 0–3 in head_press; a swipe runs from zone to zone (z0 to z2: forward).",
    "where": {
     "part": "body",
     "offset": [
      0,
      70.5,
-     -5
+     -19.5
     ],
     "how": "near",
     "out": [
@@ -364,26 +377,144 @@
     "shape": {
      "kind": "rect",
      "w": 40,
-     "h": 34,
-     "r": 4
+     "h": 12,
+     "r": 2
     },
-    "note": "the head's top (M5Stack's photos: TOUCH PADS x 3; the firmware: three zones, swipe forward and back): marked as the top, the pads' exact places are not in the docs",
+    "note": "the head's top, the third z0, at the back (the driver's position runs z0 -100, z1 0, z2 +100; a swipe from z0 to z2 is forward); the pads' exact places are not in the docs",
     "source": {
-     "url": "https://docs.m5stack.com/en/StackChan",
-     "quote": "TOUCH PADS x 3"
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/hal/hal_head_touch.cpp",
+     "line": 36,
+     "quote": "intensity[0] * (-100)"
     }
-   }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 24,
+     "quote": "Head touch panel, 3 zones"
+    }
+   ]
   },
   {
-   "id": "servo-feedback",
-   "name": "Servo feedback",
+   "id": "head-touch-middle",
+   "name": "Head touch, middle zone (z1)",
+   "kind": "sensor",
+   "chip": "Si12T",
+   "does": "One of the head's three touch zones (z1, in the middle): its intensity 0–3 in head_press; a swipe runs from zone to zone (z0 to z2: forward).",
+   "where": {
+    "part": "body",
+    "offset": [
+     0,
+     70.5,
+     -6.5
+    ],
+    "how": "near",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 40,
+     "h": 12,
+     "r": 2
+    },
+    "note": "the head's top, the third z1, in the middle (the driver's position runs z0 -100, z1 0, z2 +100; a swipe from z0 to z2 is forward); the pads' exact places are not in the docs",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/hal/hal_head_touch.cpp",
+     "line": 36,
+     "quote": "intensity[0] * (-100)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 24,
+     "quote": "Head touch panel, 3 zones"
+    }
+   ]
+  },
+  {
+   "id": "head-touch-front",
+   "name": "Head touch, front zone (z2)",
+   "kind": "sensor",
+   "chip": "Si12T",
+   "does": "One of the head's three touch zones (z2, at the front): its intensity 0–3 in head_press; a swipe runs from zone to zone (z0 to z2: forward).",
+   "where": {
+    "part": "body",
+    "offset": [
+     0,
+     70.5,
+     6.5
+    ],
+    "how": "near",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 40,
+     "h": 12,
+     "r": 2
+    },
+    "note": "the head's top, the third z2, at the front (the driver's position runs z0 -100, z1 0, z2 +100; a swipe from z0 to z2 is forward); the pads' exact places are not in the docs",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/hal/hal_head_touch.cpp",
+     "line": 36,
+     "quote": "intensity[0] * (-100)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 24,
+     "quote": "Head touch panel, 3 zones"
+    }
+   ]
+  },
+  {
+   "id": "yaw-servo-feedback",
+   "name": "Yaw servo feedback",
    "kind": "sensor",
    "with": [
-    "yaw-servo",
+    "yaw-servo"
+   ],
+   "chip": "Feetech SCS0009",
+   "does": "Angle, load (%), temperature, supply voltage, raw position, speed and current, moving.",
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "4013171b14649e5e045ab1ac7dfbcfdde4d692b2",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 25,
+     "quote": "| Servo feedback | 2x Feetech SCS0009 (serial bus)"
+    }
+   ]
+  },
+  {
+   "id": "pitch-servo-feedback",
+   "name": "Pitch servo feedback",
+   "kind": "sensor",
+   "with": [
     "pitch-servo"
    ],
-   "chip": "2x Feetech SCS0009",
-   "does": "Per servo: angle, load (%), temperature, supply voltage, raw position, speed and current, moving.",
+   "chip": "Feetech SCS0009",
+   "does": "Angle, load (%), temperature, supply voltage, raw position, speed and current, moving.",
    "sources": [
     {
      "repo": "StackChan",
@@ -426,7 +557,7 @@
      "kind": "circle",
      "r": 0.8
     },
-    "note": "on the head's top behind the CoreS3, the small dot at the front of the middle tab (M5Stack's photos: IR Tx / Rx)",
+    "note": "the IRM56384 on the touch board (HARDWARE.md line 26), the head's top: marked at the small dot in front of the middle tab; not sure (the owner wonders if it shares the proximity sensor's detector)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "IR Tx / Rx"
@@ -456,25 +587,23 @@
     }
    ],
    "where": {
-    "part": "back-panel",
+    "part": "body",
     "offset": [
-     8,
-     62,
-     -27
+     0,
+     70.5,
+     -6.5
     ],
     "how": "near",
     "out": [
      0,
-     0,
-     -1
+     1,
+     0
     ],
     "shape": {
-     "kind": "rect",
-     "w": 14,
-     "h": 8,
-     "r": 2
+     "kind": "circle",
+     "r": 8
     },
-    "note": "the ST25R3916 in the head (HARDWARE.md line 27), marked on the head's main board; where its antenna is (where to hold a card) is not in the docs",
+    "note": "on the head's top: a card laid on the head touch panel is read (the owner, with the robot); the antenna's exact place is not in the docs",
     "source": {
      "repo": "StackChan",
      "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
@@ -1063,7 +1192,7 @@
      "kind": "circle",
      "r": 1.6
     },
-    "note": "on the head's top behind the CoreS3, in the round hole of the middle tab (M5Stack's photos: IR Tx / Rx)",
+    "note": "on the head's top behind the CoreS3, in the round hole of the middle tab (the owner: the IR LED is that hole; HARDWARE.md: on top, near the display unit)",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "IR Tx / Rx"

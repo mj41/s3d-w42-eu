@@ -47,7 +47,7 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
-// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under|bottom, for comparing with photos): the robot
+// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under|bottom|led, for comparing with photos): the robot
 // turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
 // (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
 const views = {
@@ -61,6 +61,7 @@ const views = {
   topseam: { yaw: -20, elevation: 55, zoom: 0.3, aim: 0.98 },
   under: { yaw: -15, elevation: -30, zoom: 0.75, aim: 0.35 },
   bottom: { yaw: 0, elevation: -80, zoom: 0.8, aim: 0.2 },
+  led: { yaw: 0, elevation: -25, zoom: 0.45, aim: 0.26 },
 };
 const view = views[new URLSearchParams(location.search).get('view')] || null;
 if (view && view.elevation !== undefined) elevation = view.elevation * deg;
@@ -387,6 +388,16 @@ function addMarkers(robot, screen) {
     node.add(label);
     el.style.setProperty('--c', hex);
     const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, hex, shades, out, at: new THREE.Vector3().fromArray(where.offset), shown: [] };
+    if (items.some((p) => p.where.how === 'inside')) { // seen through its part when picked: a dot inside
+      const part = robot.getObjectByName(where.part);
+      part.geometry.computeBoundingBox();
+      m.inside = { part, dot: new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 14), new THREE.MeshBasicMaterial({ color: colour, depthTest: false, transparent: true, opacity: 0.9 })) };
+      part.geometry.boundingBox.getCenter(m.inside.dot.position);
+      m.inside.dot.renderOrder = 11;
+      m.inside.dot.visible = false;
+      m.inside.dot.raycast = () => {};
+      part.add(m.inside.dot);
+    }
     markers.push(m);
     el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
     el.addEventListener('click', (e) => { e.stopPropagation(); if (m.shown.length) focus(m.shown[0], true); });
@@ -419,10 +430,31 @@ function updateMarkers() {
   markersBox.checked = n === ids.length;
   markersBox.indeterminate = n > 0 && n < ids.length;
 }
+// See-through: while a part inside another (how inside: the IMU in the CoreS3) is picked, that
+// part (and the screen on it) turns translucent and a dot shows the inside part.
+let xrayOf = null;
+const xrayed = []; // [material, transparent, opacity, depthWrite]
+function xray(m) {
+  if (m === xrayOf) return;
+  for (const [mat, t, o, dw] of xrayed.splice(0)) { mat.transparent = t; mat.opacity = o; mat.depthWrite = dw; mat.needsUpdate = true; }
+  if (xrayOf && xrayOf.inside) xrayOf.inside.dot.visible = false;
+  xrayOf = m;
+  if (!m || !m.inside) return;
+  const meshes = [m.inside.part];
+  if (m.inside.part.name === 'core') meshes.push(m.inside.part.parent.getObjectByName('screen'));
+  for (const mesh of meshes.filter(Boolean)) {
+    const mat = mesh.material;
+    xrayed.push([mat, mat.transparent, mat.opacity, mat.depthWrite]);
+    mat.transparent = true; mat.opacity = 0.25; mat.depthWrite = false; mat.needsUpdate = true;
+  }
+  m.inside.dot.visible = true;
+}
+
 // Each frame: only the markers on the sides facing the camera show (their out, turned with the
 // robot, toward the camera); the focused one pulses.
 const world = new THREE.Vector3(), toCam = new THREE.Vector3(), out = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
 function frameMarkers(now) {
+  xray(focused);
   for (const m of markers) {
     if (!m.on) continue;
     const f = focused === m;

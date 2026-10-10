@@ -134,8 +134,21 @@
    ]
   },
   {
-   "part": "servo-feedback",
-   "does": "Servo load and temperature, supply voltage, the reported angles.",
+   "part": "yaw-servo-feedback",
+   "does": "Load and temperature, supply voltage, the reported angle of the yaw servo.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 60,
+     "quote": "**Sensors:**"
+    }
+   ]
+  },
+  {
+   "part": "pitch-servo-feedback",
+   "does": "Load and temperature, supply voltage, the reported angle of the pitch servo.",
    "sources": [
     {
      "repo": "s-w42-eu-raw",

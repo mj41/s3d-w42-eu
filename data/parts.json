@@ -910,6 +910,32 @@
    "kind": "actuator",
    "chip": "AXP2101 CHGLED",
    "does": "The red power LED: on, off, blink, fast, or driven by the charger.",
+   "where": {
+    "part": "core",
+    "offset": [
+     6.8,
+     16.5,
+     29.2
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     -1,
+     0
+    ],
+    "shape": {
+     "kind": "circle",
+     "r": 1.2
+    },
+    "note": "on the CoreS3's bottom, between the microSD slot and the reboot button (M5Stack's photo of the bottom)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "b5c9233f6e2894fdce6846adf4c5ca5996473f9e",
+     "path": "robot3d/shade.go",
+     "line": 98,
+     "quote": "the power / charge LED"
+    }
+   },
    "sources": [
     {
      "repo": "StackChan",

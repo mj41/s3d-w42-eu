@@ -112,7 +112,7 @@ func runCompare(chromeFlag, glb, threeDir, out string) error {
 }
 
 // allViews are the page's fixed views (web/app.js: views).
-var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam"}
+var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam", "under"}
 
 func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error) {
 	chrome, err := findChrome(chromeFlag)
@@ -602,6 +602,20 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	if shot, err := p.screenshot(ctx, nil); err == nil {
 		os.WriteFile(filepath.Join(out, "pagecheck-"+w.name+"-pick.png"), shot, 0o644)
 	}
+	// A pick of a part on the bottom (the power LED, in Raw data) tilts the view to show it from below.
+	var under struct{ Focus string }
+	p.Eval(ctx, `(() => { location.hash = 'raw'; return true; })()`, nil)
+	time.Sleep(500 * time.Millisecond)
+	p.Eval(ctx, `(() => { const li = document.querySelector('li[data-id="power-led"] .name'); if (li) li.click(); return true; })()`, nil)
+	p.waitFor(ctx, `[...document.querySelectorAll('.label.focus')].some((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 3*time.Second)
+	p.Eval(ctx, `({Focus: [...document.querySelectorAll('.label.focus')].filter((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none').map((e) => e.textContent).join(',')})`, &under)
+	report(under.Focus == "Power/charge LED", "a pick of the power LED shows it from below: focused %q", under.Focus)
+	if shot, err := p.screenshot(ctx, nil); err == nil {
+		os.WriteFile(filepath.Join(out, "pagecheck-"+w.name+"-under.png"), shot, 0o644)
+	}
+	p.Eval(ctx, `(() => { location.hash = 'pet'; return true; })()`, nil)
+	time.Sleep(500 * time.Millisecond)
+
 	var shown [2]int
 	p.Eval(ctx, `(() => { const b = document.getElementById('markers'); const n = () => [...document.querySelectorAll('.label')].filter((e) => e.textContent && e.offsetParent && getComputedStyle(e.parentElement).display !== 'none').length;
 		b.checked = false; b.dispatchEvent(new Event('change')); const off = n(); b.checked = true; b.dispatchEvent(new Event('change')); return [off, n()]; })()`, &shown)

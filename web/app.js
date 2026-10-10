@@ -62,7 +62,7 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
-// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam, for comparing with photos): the robot
+// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under, for comparing with photos): the robot
 // turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
 // (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
 const views = {
@@ -74,6 +74,7 @@ const views = {
   seam: { yaw: -50, elevation: 25, zoom: 0.35, aim: 0.8 },
   holes: { yaw: -90, elevation: 0, zoom: 0.3, aim: 0.85 },
   topseam: { yaw: -20, elevation: 55, zoom: 0.3, aim: 0.98 },
+  under: { yaw: -15, elevation: -30, zoom: 0.75, aim: 0.35 },
 };
 const view = views[new URLSearchParams(location.search).get('view')] || null;
 if (view && view.elevation !== undefined) elevation = view.elevation * deg;
@@ -228,15 +229,17 @@ stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', endDrag);
 
 // faceTo turns the robot (and tilts the view) so that a direction at rest faces the camera.
-function faceTo(out) {
+// A part facing straight down (under the CoreS3) is turned by where it is: its side to the front.
+function faceTo(out, at) {
   const from = turntable.rotation.y;
   let to = from;
-  if (Math.hypot(out.x, out.z) > 0.3) {
-    const a = -Math.atan2(out.x, out.z);
+  const dir = Math.hypot(out.x, out.z) > 0.3 ? out : out.y < -0.5 && at && Math.hypot(at.x, at.z) > 1 ? at : null;
+  if (dir) {
+    const a = -Math.atan2(dir.x, dir.z);
     to = from + ((((a - from) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
   }
   const up = out.y / out.length();
-  turnTo = { from, to, el0: elevation, el1: up > 0.7 ? 55 * deg : up > 0.2 ? 30 * deg : 12 * deg, t0: performance.now(), ms: 700 };
+  turnTo = { from, to, el0: elevation, el1: up > 0.7 ? 55 * deg : up > 0.2 ? 30 * deg : up < -0.5 ? -30 * deg : 12 * deg, t0: performance.now(), ms: 700 };
   setAutoTurn(false);
 }
 function turning(now) {
@@ -374,7 +377,7 @@ function addMarkers(robot, screen) {
     label.center.set(0, 0.5); // the label starts at the dot
     label.position.copy(at);
     node.add(label);
-    const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, out, shown: [] };
+    const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, out, at: new THREE.Vector3().fromArray(where.offset), shown: [] };
     markers.push(m);
     el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
     el.addEventListener('click', (e) => {
@@ -511,7 +514,7 @@ function focus(p, fromStage = false) {
   if (li) { li.classList.add('active'); if (fromStage) li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   showMove(target);
   if (focused) {
-    faceTo(focused.out);
+    faceTo(focused.out, focused.at);
     focused.el.classList.remove('flash'); void focused.el.offsetWidth; focused.el.classList.add('flash');
     if (!fromStage) openPop(focused.shown.length > 1 ? focused : null, true);
   }

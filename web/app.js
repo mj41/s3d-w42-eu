@@ -192,10 +192,12 @@ function measure(robot) {
   fit();
 }
 
-// Turning: slowly by itself until the button stops it, or a drag (which turns it, and tilts the
-// view with a mouse) or a pick in the list (which turns the picked part to the front) does.
-// Touch keeps vertical swipes for scrolling the page.
-const spin = 0.25; // radians a second
+// Turning: by itself, side by side (a quarter turn, slow and smooth, then a pause on each side),
+// until the button stops it, or an arrow (the next side, left or right), a drag (which turns it,
+// and tilts the view with a mouse) or a pick in the list (which turns the picked part to the
+// front) does. Touch keeps vertical swipes for scrolling the page.
+const sideMs = 2600, holdMs = 2400; // a quarter turn by itself, and the pause on each side
+let nextSideAt = 0;
 const spinButton = document.getElementById('spin');
 let autoTurn = false;
 function setAutoTurn(on) {
@@ -242,13 +244,25 @@ function faceTo(out, at) {
   turnTo = { from, to, el0: elevation, el1: up > 0.7 ? 55 * deg : up > 0.2 ? 30 * deg : up < -0.5 ? -30 * deg : 12 * deg, t0: performance.now(), ms: 700 };
   setAutoTurn(false);
 }
+// turnSide turns the robot to its next side (dir 1 or -1), from where it is.
+function turnSide(dir, ms) {
+  const from = turntable.rotation.y, q = Math.PI / 2;
+  const to = (Math.round(from / q - dir * 0.3) + dir) * q;
+  turnTo = { from, to, el0: elevation, el1: view ? elevation : 12 * deg, t0: performance.now(), ms };
+}
+for (const [id, dir] of [['turn-left', -1], ['turn-right', 1]]) {
+  const b = document.getElementById(id);
+  b.addEventListener('pointerdown', (e) => e.stopPropagation());
+  b.addEventListener('click', (e) => { e.stopPropagation(); setAutoTurn(false); turnSide(dir, 900); });
+}
 function turning(now) {
+  if (autoTurn && !drag && !turnTo && now > nextSideAt) turnSide(1, sideMs);
   if (!turnTo) return;
   const t = Math.min(1, (now - turnTo.t0) / turnTo.ms), s = t * t * (3 - 2 * t);
   turntable.rotation.y = turnTo.from + (turnTo.to - turnTo.from) * s;
   elevation = turnTo.el0 + (turnTo.el1 - turnTo.el0) * s;
   placeCamera();
-  if (t >= 1) turnTo = null;
+  if (t >= 1) { turnTo = null; nextSideAt = now + holdMs; }
 }
 
 // The head's joints (robot.glb's yaw and head nodes) and a short move to show a servo.
@@ -272,6 +286,10 @@ function pose(now) {
 // list on hover or tap. The screen's entries (area screen) outline the screen. Only the selected
 // entries of the list show.
 const near = 1.5;
+// Each marker its own shade (its outline, its label and its row in the list): sensors blues,
+// actuators oranges, so two of a kind in view still differ.
+const sensorShades = ['#1f6fd0', '#0e8fa8', '#5a4fcf', '#2b4fa0', '#1a9a8a', '#3d8de0', '#4069b8', '#0f6f8f'];
+const actuatorShades = ['#d0611f', '#c23a2b', '#c98a12', '#a8461c', '#e0783a', '#b5521f', '#d84a5a', '#9a6a10'];
 const markers = []; // {ids, items, obj, label, el, colour, out}
 let parts = [], apps = [], byId = new Map();
 let picked = null; // the app shown
@@ -340,7 +358,10 @@ function addMarkers(robot, screen) {
     const node = robot.getObjectByName(where.area === 'screen' ? 'screen' : where.part);
     if (!node) { console.warn('no part', where.part); continue; }
     const kind = items.every((p) => p.kind === 'sensor') ? 'sensor' : items.every((p) => p.kind === 'actuator') ? 'actuator' : 'both';
-    const colour = new THREE.Color(css(kind === 'actuator' ? '--actuator' : '--sensor'));
+    const shades = kind === 'actuator' ? actuatorShades : sensorShades;
+    const n = markers.filter((m) => m.shades === shades).length;
+    const hex = shades[n % shades.length];
+    const colour = new THREE.Color(hex);
     const out = outOf(where);
     let obj, at;
     if (where.area === 'screen' && screen) { // a frame round the screen
@@ -377,52 +398,13 @@ function addMarkers(robot, screen) {
     label.center.set(0, 0.5); // the label starts at the dot
     label.position.copy(at);
     node.add(label);
-    const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, out, at: new THREE.Vector3().fromArray(where.offset), shown: [] };
+    el.style.setProperty('--c', hex);
+    const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, hex, shades, out, at: new THREE.Vector3().fromArray(where.offset), shown: [] };
     markers.push(m);
     el.addEventListener('pointerdown', (e) => e.stopPropagation()); // a tap, not a drag
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (m.shown.length > 1) openPop(open === m && pinned ? null : m, true);
-      else if (m.shown.length) focus(m.shown[0], true);
-    });
-    el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && !pinned && m.shown.length > 1) openPop(m); });
-    el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !pinned) openPop(null); });
+    el.addEventListener('click', (e) => { e.stopPropagation(); if (m.shown.length) focus(m.shown[0], true); });
   }
 }
-
-// The list of a group's parts, next to its label; a row picks its part.
-const pop = document.createElement('div');
-pop.id = 'pop';
-pop.hidden = true;
-stage.append(pop);
-let open = null, pinned = false;
-function openPop(m, pin = false) {
-  open = m;
-  pinned = !!m && pin;
-  pop.hidden = !m;
-  if (!m) return;
-  pop.replaceChildren(...m.shown.map((p) => {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const k = document.createElement('span');
-    k.className = 'kind ' + p.kind; k.textContent = p.kind;
-    row.append(p.name, k);
-    row.addEventListener('pointerdown', (e) => e.stopPropagation());
-    row.addEventListener('click', (e) => { e.stopPropagation(); focus(p, true); });
-    return row;
-  }));
-  placePop();
-}
-function placePop() {
-  if (!open) return;
-  const s = stage.getBoundingClientRect(), r = open.el.getBoundingClientRect();
-  const x = Math.min(r.left - s.left, s.width - pop.offsetWidth - 6);
-  let y = r.bottom - s.top + 4;
-  if (y + pop.offsetHeight > s.height - 4) y = r.top - s.top - pop.offsetHeight - 4;
-  pop.style.left = Math.max(6, x) + 'px';
-  pop.style.top = Math.max(6, y) + 'px';
-}
-stage.addEventListener('click', () => { if (open) openPop(null); });
 
 // listed: the entries the panel lists (the app's uses, or all); a feature (with) shows on its parts.
 const listed = () => (picked ? picked.uses.map((u) => byId.get(u.part)).filter(Boolean) : parts);
@@ -440,11 +422,8 @@ function updateMarkers() {
     m.on = on; // checked; frameMarkers shows it only while its side faces the camera
     m.obj.visible = on;
     m.label.visible = on;
-    if (!on && open === m) openPop(null);
     if (!on && focused === m) focused = null;
-    m.el.classList.toggle('group', m.shown.length > 1);
-    m.el.textContent = m.shown.length > 1 ? m.shown.length + ' parts' : m.shown.length ? m.shown[0].name : '';
-    m.el.title = m.shown.map((p) => p.name).join(', ');
+    m.el.textContent = m.shown.map((p) => p.name).join(', '); // parts at one place: their names
     m.el.classList.toggle('used', !!picked);
     m.el.classList.toggle('focus', focused === m);
   }
@@ -465,7 +444,6 @@ function frameMarkers(now) {
     toCam.copy(camera.position).sub(world).normalize();
     const facing = out.dot(toCam) > 0.2;
     m.obj.visible = m.label.visible = facing;
-    if (!facing && open === m) openPop(null);
     if (!facing) continue;
     const behind = false;
     const pulse = 0.5 + 0.5 * Math.sin(now / 180);
@@ -516,7 +494,6 @@ function focus(p, fromStage = false) {
   if (focused) {
     faceTo(focused.out, focused.at);
     focused.el.classList.remove('flash'); void focused.el.offsetWidth; focused.el.classList.add('flash');
-    if (!fromStage) openPop(focused.shown.length > 1 ? focused : null, true);
   }
 }
 
@@ -545,6 +522,8 @@ const link = (href, text, external = true) => {
 function item(p, does, srcs) {
   const li = document.createElement('li');
   li.dataset.id = p.id;
+  const mk = markers.find((m) => m.ids.includes(p.with ? p.with[0] : p.id));
+  if (mk) { li.style.setProperty('--c', mk.hex); li.classList.add('placed'); } // its marker's colour
   const cb = document.createElement('input');
   cb.type = 'checkbox'; cb.dataset.id = p.id; cb.checked = selected.has(p.id);
   cb.title = 'Show on the robot';
@@ -622,7 +601,6 @@ function render() {
   }
   setLEDs(picked ? picked.leds : null);
   updateMarkers();
-  if (open) openPop(null);
 }
 
 // All: checks or clears every entry of the list.
@@ -649,14 +627,12 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (autoTurn && !drag && !open) turntable.rotation.y += spin * dt; // held while a list is open
   turning(now);
   pose(now);
   frameMarkers(now);
   renderer.render(scene, camera);
   labels.render(scene, camera);
   spread();
-  placePop();
   requestAnimationFrame(frame);
 }
 

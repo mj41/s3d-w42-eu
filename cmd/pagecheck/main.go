@@ -3,7 +3,7 @@
 // it at 1200 and 420 px and checks that
 //
 //   - the robot is drawn and fills most of the view, also after a resize;
-//   - the markers are grouped: a group's label is a count, and a tap opens its list;
+//   - the labels are plain names (a place with two parts lists both), and a tap on one picks its part;
 //   - no two labels overlap while the robot turns;
 //   - the side panel's links wrap: nothing overflows the panel or the page;
 //   - there are no console errors or uncaught exceptions.
@@ -456,7 +456,7 @@ func drawnBounds(img image.Image) image.Rectangle {
 // labelsJS gives the visible labels with their boxes and the side panel's overflow.
 const labelsJS = `(() => {
 	const ls = [...document.querySelectorAll('.label')].filter((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')
-		.map((e) => { const r = e.getBoundingClientRect(); return {text: e.textContent, group: e.classList.contains('group'), x: r.left, y: r.top, w: r.width, h: r.height}; });
+		.map((e) => { const r = e.getBoundingClientRect(); return {text: e.textContent, x: r.left, y: r.top, w: r.width, h: r.height}; });
 	const aside = document.querySelector('aside'), ar = aside.getBoundingClientRect();
 	const wide = [...aside.querySelectorAll('a, .src, .does, .about, .meta')].filter((e) => e.getBoundingClientRect().right > ar.right + 1).map((e) => e.textContent.slice(0, 60));
 	return {labels: ls, asideOverflow: aside.scrollWidth - aside.clientWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth, wide};
@@ -464,7 +464,6 @@ const labelsJS = `(() => {
 
 type label struct {
 	Text       string
-	Group      bool
 	X, Y, W, H float64
 }
 
@@ -515,8 +514,8 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	}
 	report(max(fh, fw) >= minFill, "the robot drawn: %.0f%% of the view's height, %.0f%% of its width (at least %.0f%% of one)", 100*fh, 100*fw, 100*minFill)
 
-	// The markers grouped; no labels overlapping as it turns; nothing overflowing.
-	groupSet := map[string]bool{} // the group labels seen in any frame (only the sides facing the camera show)
+	// The labels plain names; no labels overlapping as it turns; nothing overflowing.
+	seen := map[string]bool{} // the labels seen in any frame (only the sides facing the camera show)
 	overlaps := map[string]bool{}
 	var l layout
 	for frame := 0; frame < 10; frame++ {
@@ -524,9 +523,7 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 			return failed, err
 		}
 		for _, lb := range l.Labels {
-			if lb.Group {
-				groupSet[lb.Text] = true
-			}
+			seen[lb.Text] = true
 		}
 		for i, a := range l.Labels {
 			for _, c := range l.Labels[i+1:] {
@@ -537,45 +534,43 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 		}
 		time.Sleep(600 * time.Millisecond)
 	}
-	count := regexp.MustCompile(`^(\d+) parts$`)
-	bad := []string{}
-	groups := keys(groupSet)
-	for _, g := range groups {
-		if !count.MatchString(g) {
-			bad = append(bad, g)
+	counted := regexp.MustCompile(`\d+ parts`)
+	var bad []string
+	for t := range seen {
+		if counted.MatchString(t) {
+			bad = append(bad, t)
 		}
 	}
-	report(len(groups) > 0 && len(bad) == 0, "markers grouped: %d labels, groups %q%s", len(l.Labels), groups, listText(" not a count:", bad))
+	report(len(seen) > 0 && len(bad) == 0, "labels plain names: %q%s", keys(seen), listText(" a count:", bad))
 	report(len(overlaps) == 0, "no labels overlap in 10 frames as it turns%s", listText(":", keys(overlaps)))
 	report(l.AsideOverflow <= 0 && l.PageOverflow <= 0 && len(l.Wide) == 0, "links wrap: the panel overflows by %.0f px, the page by %.0f px%s", l.AsideOverflow, l.PageOverflow, listText(" wider than the panel:", l.Wide))
 
-	// A pick in the list (Camera) turns the front to the camera, where the groups are.
-	p.Eval(ctx, `(() => { const li = document.querySelector('li[data-id="camera"] .name'); if (li) li.click(); const e = document.getElementById('pop'); if (e && !e.hidden) document.getElementById('stage').click(); return true; })()`, nil)
+	// A pick in the list (Camera) turns the front to the camera.
+	p.Eval(ctx, `(() => { const li = document.querySelector('li[data-id="camera"] .name'); if (li) li.click(); return true; })()`, nil)
 	time.Sleep(1200 * time.Millisecond)
 
-	// A tap on a group opens its list, one row a part.
+	// A tap on a label picks its part: focused, and its row in the list marked. The light sensor's
+	// place has two parts: its label lists both names.
+	p.waitFor(ctx, `[...document.querySelectorAll('.label')].some((e) => e.textContent === 'Ambient light, Proximity' && e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 4*time.Second)
 	var g struct {
 		Text string
 		X, Y float64
 	}
-	if err := p.Eval(ctx, `(() => { const e = [...document.querySelectorAll('.label.group')].find((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none'); if (!e) return {Text: ''}; const r = e.getBoundingClientRect(); return {Text: e.textContent, X: r.left + r.width / 2, Y: r.top + r.height / 2}; })()`, &g); err != nil {
+	if err := p.Eval(ctx, `(() => { const e = [...document.querySelectorAll('.label')].find((e) => e.textContent.startsWith('Ambient light') && e.offsetParent && getComputedStyle(e.parentElement).display !== 'none'); if (!e) return {Text: ''}; const r = e.getBoundingClientRect(); return {Text: e.textContent, X: r.left + r.width / 2, Y: r.top + r.height / 2}; })()`, &g); err != nil {
 		return failed, err
 	}
-	if g.Text != "" {
-		for _, t := range []string{"mousePressed", "mouseReleased"} {
-			if err := p.Call(ctx, "Input.dispatchMouseEvent", map[string]any{"type": t, "x": g.X, "y": g.Y, "button": "left", "clickCount": 1}, nil); err != nil {
-				return failed, err
-			}
+	for _, t := range []string{"mousePressed", "mouseReleased"} {
+		if g.Text == "" {
+			break
 		}
-		time.Sleep(300 * time.Millisecond)
-		var rows int
-		p.Eval(ctx, `(() => { const e = document.getElementById('pop'); return e && !e.hidden ? e.querySelectorAll('.row').length : 0; })()`, &rows)
-		want := 0
-		if m := count.FindStringSubmatch(g.Text); m != nil {
-			fmt.Sscan(m[1], &want)
+		if err := p.Call(ctx, "Input.dispatchMouseEvent", map[string]any{"type": t, "x": g.X, "y": g.Y, "button": "left", "clickCount": 1}, nil); err != nil {
+			return failed, err
 		}
-		report(rows == want && rows > 0, "a tap on %q opens its list: %d rows", g.Text, rows)
 	}
+	time.Sleep(300 * time.Millisecond)
+	var row string
+	p.Eval(ctx, `(document.querySelector('li.active .name') || {}).textContent || ''`, &row)
+	report(g.Text == "Ambient light, Proximity" && row == "Ambient light", "a tap on the label %q picks its part: %q", g.Text, row)
 
 	// The screenshot, then the robot framed again after a resize.
 	shot, err := p.screenshot(ctx, nil)

@@ -34,6 +34,11 @@ main { display: grid; grid-template-columns: min(calc(100vh - 110px), 58vw) minm
 #spin { position: absolute; top: 8px; right: 8px; z-index: 2; font: inherit; font-size: .82rem; padding: 4px 10px; border-radius: 8px;
   border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 90%, transparent); color: var(--ink); cursor: pointer; }
 #spin[aria-pressed="false"] { color: var(--accent); border-color: var(--accent); }
+.turn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--ink);
+  font-size: 15px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+.turn:hover { border-color: var(--accent); color: var(--accent); }
+#turn-left { left: 8px; } #turn-right { right: 8px; }
 #stage.dragging { cursor: grabbing; }
 #stage canvas { display: block; }
 #status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
@@ -67,21 +72,14 @@ aside { min-width: 0; }
 .swatch { display: inline-block; width: .8em; height: .8em; border-radius: 50%; margin-right: 6px; vertical-align: -1px; box-shadow: 0 0 6px currentColor; }
 .unplaced { font-size: .8rem; color: var(--muted); }
 .label { font-size: 11px; line-height: 1.2; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
-  background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); color: var(--ink);
-  margin-left: 8px; pointer-events: auto; cursor: pointer; transition: opacity .2s; }
-.label.focus { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; z-index: 3; }
+  background: var(--c, var(--sensor)); border: 1px solid var(--c, var(--sensor)); color: #fff; font-weight: 600;
+  margin-left: 8px; pointer-events: auto; cursor: pointer; transition: opacity .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.label.focus { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--c, var(--sensor)); z-index: 3; }
 .label.flash { animation: flash .8s; }
-@keyframes flash { from { background: var(--accent); color: #fff; } }
-.label.group { pointer-events: auto; cursor: pointer; text-decoration: underline dotted; }
-.label.group::after { content: " ▾"; }
-#pop { position: absolute; z-index: 5; min-width: 160px; max-width: calc(100% - 12px); padding: 4px 0; border-radius: 8px;
-  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.18); font-size: 13px; }
-#pop .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 10px; cursor: pointer; }
-#pop .row:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-#pop .row.used { font-weight: 600; } #pop .row.dimmed { opacity: .45; }
-.label.used { border-color: var(--accent); font-weight: 600; }
-.label.dimmed { opacity: .35; }
-.label.behind { opacity: .2; }
+@keyframes flash { from { transform: scale(1.25); } }
+ul.items li.placed .name::before { content: ""; display: inline-block; width: .7em; height: .7em; border-radius: 3px;
+  background: var(--c); margin-right: 6px; vertical-align: 0; }
+ul.items li.placed.active { background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 3px 0 var(--c); }
 footer { padding: 0 16px 16px; color: var(--muted); font-size: .8rem; }
 footer a { color: inherit; }
 </style>
@@ -102,7 +100,7 @@ footer a { color: inherit; }
   </nav>
 </header>
 <main>
-  <div id="stage"><div id="status">Loading the robot…</div><div id="hint">drag to turn</div><button id="spin" type="button" aria-pressed="true">⏸ Stop turning</button></div>
+  <div id="stage"><div id="status">Loading the robot…</div><div id="hint">drag to turn</div><button id="spin" type="button" aria-pressed="true">⏸ Stop turning</button><button id="turn-left" class="turn" type="button" aria-label="Turn to the next side, left">◀</button><button id="turn-right" class="turn" type="button" aria-label="Turn to the next side, right">▶</button></div>
   <aside>
     <div class="controls">
       <label>App <select id="app"><option value="">— none: all parts —</option></select></label>

@@ -712,29 +712,31 @@
     }
    ],
    "where": {
-    "part": "servo",
+    "part": "pitch-servo",
     "offset": [
-     0,
-     40.8,
-     0
+     16.5,
+     38.6,
+     -17
     ],
-    "how": "joint",
+    "how": "exact",
     "out": [
-     1,
      0,
-     0
+     0,
+     -1
     ],
     "shape": {
-     "kind": "circle",
-     "r": 3.5
+     "kind": "rect",
+     "w": 9,
+     "h": 4,
+     "r": 1
     },
-    "note": "the pitch joint: robot3d's pitch pivot, the servo's horn; marked where its axis meets the head's left side",
+    "note": "the pitch servo (the black box robot3d draws in the servo body's pocket), seen through the open back under the main board (the owner's photo of the back)",
     "source": {
      "repo": "s-w42-eu-assets",
-     "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
+     "ref": "18d17409254eee0c27045736d9f3fec8eed8a0aa",
      "path": "robot3d/mesh.go",
-     "line": 31,
-     "quote": "pivot is the pitch axis (along X) at rest: the servo's horn"
+     "line": 58,
+     "quote": "pitchServoX0, pitchServoX1 = 11.0, 22.0"
     }
    }
   },

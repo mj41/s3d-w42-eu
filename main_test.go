@@ -139,13 +139,13 @@ func TestPlaces(t *testing.T) {
 		}
 	}
 	c, _, _ := robot3d.Screen()
-	pv := robot3d.PitchPivot()
-	for id, want := range map[string]robot3d.V3{"display": c, "touch-screen": c, "pitch-servo": pv} {
+	for id, want := range map[string]robot3d.V3{"display": c, "touch-screen": c} {
 		got := at[id]
 		if math.Abs(got[0]-want.X)+math.Abs(got[1]-want.Y)+math.Abs(got[2]-want.Z) > 1e-9 {
 			t.Errorf("%s at %v, robot3d %+v", id, got, want)
 		}
 	}
+
 }
 
 func TestApps(t *testing.T) {

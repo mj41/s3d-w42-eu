@@ -516,12 +516,17 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	report(max(fh, fw) >= minFill, "the robot drawn: %.0f%% of the view's height, %.0f%% of its width (at least %.0f%% of one)", 100*fh, 100*fw, 100*minFill)
 
 	// The markers grouped; no labels overlapping as it turns; nothing overflowing.
-	var groups []string
+	groupSet := map[string]bool{} // the group labels seen in any frame (only the sides facing the camera show)
 	overlaps := map[string]bool{}
 	var l layout
 	for frame := 0; frame < 10; frame++ {
 		if err := p.Eval(ctx, labelsJS, &l); err != nil {
 			return failed, err
+		}
+		for _, lb := range l.Labels {
+			if lb.Group {
+				groupSet[lb.Text] = true
+			}
 		}
 		for i, a := range l.Labels {
 			for _, c := range l.Labels[i+1:] {
@@ -534,24 +539,26 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	}
 	count := regexp.MustCompile(`^(\d+) parts$`)
 	bad := []string{}
-	for _, lb := range l.Labels {
-		if lb.Group {
-			groups = append(groups, lb.Text)
-			if !count.MatchString(lb.Text) {
-				bad = append(bad, lb.Text)
-			}
+	groups := keys(groupSet)
+	for _, g := range groups {
+		if !count.MatchString(g) {
+			bad = append(bad, g)
 		}
 	}
 	report(len(groups) > 0 && len(bad) == 0, "markers grouped: %d labels, groups %q%s", len(l.Labels), groups, listText(" not a count:", bad))
 	report(len(overlaps) == 0, "no labels overlap in 10 frames as it turns%s", listText(":", keys(overlaps)))
 	report(l.AsideOverflow <= 0 && l.PageOverflow <= 0 && len(l.Wide) == 0, "links wrap: the panel overflows by %.0f px, the page by %.0f px%s", l.AsideOverflow, l.PageOverflow, listText(" wider than the panel:", l.Wide))
 
+	// A pick in the list (Camera) turns the front to the camera, where the groups are.
+	p.Eval(ctx, `(() => { const li = document.querySelector('li[data-id="camera"] .name'); if (li) li.click(); const e = document.getElementById('pop'); if (e && !e.hidden) document.getElementById('stage').click(); return true; })()`, nil)
+	time.Sleep(1200 * time.Millisecond)
+
 	// A tap on a group opens its list, one row a part.
 	var g struct {
 		Text string
 		X, Y float64
 	}
-	if err := p.Eval(ctx, `(() => { const e = document.querySelector('.label.group'); if (!e) return {Text: ''}; const r = e.getBoundingClientRect(); return {Text: e.textContent, X: r.left + r.width / 2, Y: r.top + r.height / 2}; })()`, &g); err != nil {
+	if err := p.Eval(ctx, `(() => { const e = [...document.querySelectorAll('.label.group')].find((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none'); if (!e) return {Text: ''}; const r = e.getBoundingClientRect(); return {Text: e.textContent, X: r.left + r.width / 2, Y: r.top + r.height / 2}; })()`, &g); err != nil {
 		return failed, err
 	}
 	if g.Text != "" {

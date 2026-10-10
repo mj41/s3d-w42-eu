@@ -434,6 +434,7 @@ function updateMarkers() {
   for (const m of markers) {
     m.shown = shownOn(m);
     const on = m.shown.length > 0;
+    m.on = on; // checked; frameMarkers shows it only while its side faces the camera
     m.obj.visible = on;
     m.label.visible = on;
     if (!on && open === m) openPop(null);
@@ -449,17 +450,21 @@ function updateMarkers() {
   markersBox.checked = n === ids.length;
   markersBox.indeterminate = n > 0 && n < ids.length;
 }
-// Each frame: a marker on a side facing away (its out, turned with the robot) fades; the focused
-// one pulses.
+// Each frame: only the markers on the sides facing the camera show (their out, turned with the
+// robot, toward the camera); the focused one pulses.
 const world = new THREE.Vector3(), toCam = new THREE.Vector3(), out = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
 function frameMarkers(now) {
   for (const m of markers) {
-    if (!m.obj.visible) continue;
+    if (!m.on) continue;
     const f = focused === m;
     m.obj.getWorldPosition(world);
     out.copy(m.out).applyAxisAngle(yAxis, turntable.rotation.y);
     toCam.copy(camera.position).sub(world).normalize();
-    const behind = out.dot(toCam) < -0.05;
+    const facing = out.dot(toCam) > 0.2;
+    m.obj.visible = m.label.visible = facing;
+    if (!facing && open === m) openPop(null);
+    if (!facing) continue;
+    const behind = false;
     const pulse = 0.5 + 0.5 * Math.sin(now / 180);
     const a = behind ? 0.25 : f ? 0.7 + 0.3 * pulse : 1;
     if (m.obj.isGroup) m.obj.children.forEach((c) => { c.material.opacity = c.userData.fill ? (f ? 0.18 + 0.22 * pulse : 0.16) * (behind ? 0.4 : 1) : a; });

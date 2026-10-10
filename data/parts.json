@@ -323,11 +323,11 @@
     }
    ],
    "where": {
-    "part": "top-board",
+    "part": "body",
     "offset": [
      0,
-     70.2,
-     15.3
+     70.5,
+     -5
     ],
     "how": "near",
     "out": [
@@ -337,11 +337,11 @@
     ],
     "shape": {
      "kind": "rect",
-     "w": 34,
-     "h": 5,
-     "r": 1.5
+     "w": 40,
+     "h": 34,
+     "r": 4
     },
-    "note": "on the head's top behind the CoreS3 (M5Stack's picture: TOUCH PADS x 3)",
+    "note": "the head's top (M5Stack's photos: TOUCH PADS x 3; the firmware: three zones, swipe forward and back): marked as the top, the pads' exact places are not in the docs",
     "source": {
      "url": "https://docs.m5stack.com/en/StackChan",
      "quote": "TOUCH PADS x 3"

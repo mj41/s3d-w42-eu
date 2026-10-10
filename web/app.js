@@ -653,6 +653,11 @@ async function main() {
   robot.traverse((o) => {
     if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; }
     if (o.isMesh && o.name === 'screen') o.material.toneMapped = false; // the picture as it is
+    else if (o.isMesh && o.name === 'base-cover') { // the photo of the bottom carries its own light: shown about as photographed
+      o.material.emissive.set(0xffffff);
+      o.material.emissiveMap = o.material.map;
+      o.material.emissiveIntensity = 1.6;
+    }
     else if (o.isMesh && !o.name.startsWith('led-bar')) { // light bounced inside holes and recesses: a little of each part's own colour
       o.material.emissive.set(0x3a3a3a);
       if (o.material.map) o.material.emissiveMap = o.material.map;

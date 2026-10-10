@@ -28,6 +28,7 @@ hand after review. `tasks/` holds the tasks given to cloud sessions.
 |---|---|
 | `cmd/s3dgen` | writes `web/robot.glb` from robot3d (`robot3d.Parts`, `PitchPivot`, `Screen`): nodes robot (mm → m) → base → yaw → head (at the pitch pivot), each part a named node under its joint, the screen a textured quad |
 | `data/parts.json` | the sensors and actuators: what each does, where it is (a robot3d part and an offset in mm; left out where the docs do not say), its sources (repo, commit, file, line, a quote from that line) |
+| `data/decals.json`, `data/decals/` | pictures painted on the robot where robot3d draws no text (the base's bottom label, the side stickers): crops of the owner's photos, straightened, saved without their metadata; s3dgen paints them into the parts' textures |
 | `data/apps/<app>.json` | what an app does with each sensor and actuator it uses, with sources |
 | `web/index.html`, `web/app.js` | the page: three.js r160 from jsDelivr (pinned), the robot turning, drag to turn, markers, an app picker |
 | `main.go` | the site: one binary, standard library only, everything embedded |
@@ -75,7 +76,7 @@ the robot (`../StackChan/app/assets/stack_chan_model.glb`, beside this repo afte
 (left) and ours (right) from the same views, both 70.5 mm high (`compare-<view>.png`; not kept
 here: the pictures show M5Stack's model).
 
-**Comparing with photos.** `?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under` holds the robot at a fixed
+**Comparing with photos.** `?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under|bottom` holds the robot at a fixed
 view (add `#app` for an app's LEDs); `go run ./cmd/pagecheck -views all -o dir` saves each.
 Before/after pairs of each change to the model's look are in `tests/visual/`. The glTF's test
 counts each part's open edges (must not grow) and triangles wound against their normals (none).

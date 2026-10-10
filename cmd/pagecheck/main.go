@@ -112,7 +112,7 @@ func runCompare(chromeFlag, glb, threeDir, out string) error {
 }
 
 // allViews are the page's fixed views (web/app.js: views).
-var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam", "under"}
+var allViews = []string{"front", "back", "left", "right", "head", "leds", "top", "photo", "seam", "holes", "topseam", "under", "bottom"}
 
 func run(chromeFlag, siteURL, threeDir, out string, views []string) (int, error) {
 	chrome, err := findChrome(chromeFlag)

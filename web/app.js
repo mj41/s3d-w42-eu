@@ -62,7 +62,7 @@ const turntable = new THREE.Group(); // turns the whole robot
 scene.add(turntable);
 
 let distance = 0.26, elevation = 12 * deg;
-// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under, for comparing with photos): the robot
+// A fixed view (?view=front|back|left|right|head|leds|top|photo|seam|holes|topseam|under|bottom, for comparing with photos): the robot
 // turned to it (yaw, degrees: the robot's side the camera sees), not spinning; a close-up nearer
 // (zoom) and aimed at a height (aim, 0 the robot's foot, 1 its top).
 const views = {
@@ -75,6 +75,7 @@ const views = {
   holes: { yaw: -90, elevation: 0, zoom: 0.3, aim: 0.85 },
   topseam: { yaw: -20, elevation: 55, zoom: 0.3, aim: 0.98 },
   under: { yaw: -15, elevation: -30, zoom: 0.75, aim: 0.35 },
+  bottom: { yaw: 0, elevation: -80, zoom: 0.8, aim: 0.2 },
 };
 const view = views[new URLSearchParams(location.search).get('view')] || null;
 if (view && view.elevation !== undefined) elevation = view.elevation * deg;

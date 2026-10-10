@@ -25,6 +25,7 @@ const defaultScreen = "../s-w42-eu-assets/screens/launcher.png"
 func main() {
 	out := flag.String("o", "web/robot.glb", "the glTF binary to write")
 	screen := flag.String("screen", defaultScreen, "a PNG for the screen (320x240); empty: a dark screen")
+	decalsFile := flag.String("decals", "data/decals.json", "pictures painted on the robot (data/decals.json); empty: none")
 	flag.Parse()
 
 	var png []byte
@@ -36,7 +37,15 @@ func main() {
 		png = b
 	}
 	centre, w, h := robot3d.Screen()
-	glb, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, robot3d.Surface)
+	surface := surfaceFunc(robot3d.Surface)
+	if *decalsFile != "" {
+		decals, err := loadDecals(*decalsFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		surface = withDecals(surface, decals)
+	}
+	glb, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, surface)
 	if err != nil {
 		log.Fatal(err)
 	}

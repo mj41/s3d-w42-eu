@@ -171,8 +171,8 @@ func TestPartsPlaced(t *testing.T) {
 	}
 	at := world(doc, nil)
 	parts := robot3d.Parts()
-	if len(parts) != 10 {
-		t.Errorf("robot3d has %d parts, want 10", len(parts))
+	if len(parts) != 11 {
+		t.Errorf("robot3d has %d parts, want 11", len(parts))
 	}
 	for _, p := range parts {
 		n, ok := byName[p.Name]
@@ -278,8 +278,12 @@ func TestCommittedUpToDate(t *testing.T) {
 	if err != nil {
 		t.Skip("no ../s-w42-eu-assets (setup.sh)")
 	}
+	decals, err := loadDecals("../../data/decals.json")
+	if err != nil {
+		t.Fatal(err)
+	}
 	centre, w, h := robot3d.Screen()
-	want, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, robot3d.Surface)
+	want, err := build(robot3d.Parts(), robot3d.PitchPivot(), centre, w, h, png, withDecals(robot3d.Surface, decals))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +396,7 @@ func TestTextures(t *testing.T) {
 // surface); it must not grow. All of robot3d's parts are closed now.
 var openEdgesMax = map[string]int{
 	"plate": 0, "servo": 0, "servo-cover": 0, "pitch-servo": 0, "body": 0, "core": 0,
-	"led-bar-left": 0, "led-bar-right": 0, "back-panel": 0, "top-board": 0,
+	"led-bar-left": 0, "led-bar-right": 0, "back-panel": 0, "top-board": 0, "base-cover": 0,
 }
 
 // The exported parts have no holes: per part, its open edges (counted on the vertices at 0.1 µm)
@@ -449,5 +453,29 @@ func TestMeshesClosed(t *testing.T) {
 	}
 	if seen != len(openEdgesMax) {
 		t.Errorf("%d parts checked, openEdgesMax has %d", seen, len(openEdgesMax))
+	}
+}
+
+// The decals: each on a part robot3d has, its picture there, its corners a rectangle on the face
+// it is painted on.
+func TestDecals(t *testing.T) {
+	decals, err := loadDecals("../../data/decals.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	model := map[string]bool{}
+	for _, p := range robot3d.Parts() {
+		model[p.Name] = true
+	}
+	for _, dc := range decals {
+		if !model[dc.Part] || dc.About == "" {
+			t.Errorf("%s: part %q, about %q", dc.Image, dc.Part, dc.About)
+		}
+		tl := v3(dc.TopLeft)
+		u, v := v3(dc.TopRight).Sub(tl), v3(dc.BottomLeft).Sub(tl)
+		f := v3(dc.Face)
+		if math.Abs(u.Dot(v)) > 1e-6 || math.Abs(u.Dot(f)) > 1e-6 || math.Abs(v.Dot(f)) > 1e-6 || u.Len() == 0 || v.Len() == 0 {
+			t.Errorf("%s: corners not a rectangle on its face", dc.Image)
+		}
 	}
 }

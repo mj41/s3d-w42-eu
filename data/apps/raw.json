@@ -401,5 +401,17 @@
     }
    ]
   }
- ]
+ ],
+ "screen": {
+  "image": "raw-face.png",
+  "sources": [
+   {
+    "repo": "s-w42-eu-assets",
+    "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+    "path": "renders.json",
+    "line": 17,
+    "quote": "\"screen\": \"screens/raw-face.png\""
+   }
+  ]
+ }
 }

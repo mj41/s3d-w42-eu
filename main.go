@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-//go:embed web/index.html web/app.js web/robot.glb data/parts.json data/apps/*.json
+//go:embed web/index.html web/app.js web/robot.glb web/screens/*.png data/parts.json data/apps/*.json
 var files embed.FS
 
 // Source is where an entry is described: a line of a file in one of the related repos
@@ -99,6 +99,13 @@ type LEDs struct {
 	Sources []Source `json:"sources"`
 }
 
+// Screen is the picture an app shows on the robot's screen (web/screens/, from s-w42-eu-assets'
+// screens/), and why.
+type Screen struct {
+	Image   string   `json:"image"`
+	Sources []Source `json:"sources"`
+}
+
 // App is data/apps/<id>.json.
 type App struct {
 	ID      string   `json:"id"`
@@ -107,7 +114,8 @@ type App struct {
 	Repo    string   `json:"repo"`
 	Web     string   `json:"web,omitempty"`
 	Sources []Source `json:"sources"`
-	LEDs    *LEDs    `json:"leds,omitempty"` // nil: the page's default
+	LEDs    *LEDs    `json:"leds,omitempty"`   // nil: the page's default
+	Screen  *Screen  `json:"screen,omitempty"` // nil: the robot's launcher
 	Uses    []Use    `json:"uses"`
 }
 
@@ -218,6 +226,10 @@ func handler() (http.Handler, error) {
 	mux.HandleFunc("GET /{$}", serve(index, "text/html; charset=utf-8"))
 	mux.HandleFunc("GET /app.js", serve(read("web/app.js"), "text/javascript; charset=utf-8"))
 	mux.HandleFunc("GET /robot.glb", serve(read("web/robot.glb"), "model/gltf-binary"))
+	shots, _ := fs.Glob(files, "web/screens/*.png")
+	for _, f := range shots {
+		mux.HandleFunc("GET /screens/"+path.Base(f), serve(read(f), "image/png"))
+	}
 	mux.HandleFunc("GET /data/parts.json", serve(read("data/parts.json"), "application/json"))
 	mux.HandleFunc("GET /data/apps.json", serve(appsJSON, "application/json"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })

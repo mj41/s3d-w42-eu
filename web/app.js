@@ -86,7 +86,7 @@ const ledUniforms = {
 // ledColors gives the 12 LEDs' colours ('' or null: off) from an app's leds: each, robot3d's
 // -leds form ("#rrggbb*12", or 12 comma-separated, empty for off), or color for all.
 function ledColors(leds) {
-  if (!leds) return new Array(12).fill(ledDefault);
+  if (!leds) return new Array(12).fill(''); // no app: off, as on the owner's photos (the launcher)
   if (!leds.each) return new Array(12).fill(leds.color);
   const all = /^(#[0-9a-f]{6})\*12$/.exec(leds.each);
   return all ? new Array(12).fill(all[1]) : leds.each.split(',');
@@ -430,6 +430,19 @@ function updateMarkers() {
   markersBox.checked = n === ids.length;
   markersBox.indeterminate = n > 0 && n < ids.length;
 }
+// The screen shows the picked app's picture (its screen in data), else the launcher.
+let screenMesh = null, screenNow = '';
+const screenLoader = new THREE.TextureLoader();
+function setScreen(image) {
+  if (!screenMesh || image === screenNow) return;
+  screenNow = image;
+  screenLoader.load('screens/' + image, (t) => {
+    if (screenNow !== image) return;
+    t.colorSpace = THREE.SRGBColorSpace; t.flipY = false;
+    screenMesh.material.map = t; screenMesh.material.needsUpdate = true;
+  });
+}
+
 // See-through: while a part inside another (how inside: the IMU in the CoreS3) is picked, that
 // part (and the screen on it) turns translucent and a dot shows the inside part.
 let xrayOf = null;
@@ -650,6 +663,7 @@ function render() {
     panel.append(p);
   }
   setLEDs(picked ? picked.leds : null);
+  setScreen(picked && picked.screen ? picked.screen.image : 'launcher.png');
   updateMarkers();
 }
 
@@ -700,7 +714,7 @@ async function main() {
   for (const a of apps) appSelect.add(new Option(a.name, a.id));
   const robot = gltf.scene;
   robot.traverse((o) => {
-    if (o.isMesh && o.name === 'screen') o.material.toneMapped = false; // the picture as it is
+    if (o.isMesh && o.name === 'screen') { o.material.toneMapped = false; screenMesh = o; } // the picture as it is
     else if (o.isMesh && o.name === 'base-cover') { // the photo of the bottom carries its own light: shown about as photographed
       o.material.emissive.set(0xffffff);
       o.material.emissiveMap = o.material.map;

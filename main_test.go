@@ -184,6 +184,14 @@ func TestApps(t *testing.T) {
 				checkSource(t, a.ID+" leds", s)
 			}
 		}
+		if sc := a.Screen; sc != nil {
+			if _, err := files.ReadFile("web/screens/" + sc.Image); err != nil || len(sc.Sources) == 0 {
+				t.Errorf("%s: screen %q: in web/screens/, with a source", a.ID, sc.Image)
+			}
+			for _, s := range sc.Sources {
+				checkSource(t, a.ID+" screen", s)
+			}
+		}
 		used := map[string]bool{}
 		for _, u := range a.Uses {
 			if !ids[u.Part] {

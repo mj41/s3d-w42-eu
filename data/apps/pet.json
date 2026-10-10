@@ -336,5 +336,17 @@
     }
    ]
   }
- ]
+ ],
+ "screen": {
+  "image": "pet-happy.png",
+  "sources": [
+   {
+    "repo": "s-w42-eu-assets",
+    "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+    "path": "renders.json",
+    "line": 7,
+    "quote": "\"screen\": \"screens/pet-happy.png\""
+   }
+  ]
+ }
 }

@@ -348,6 +348,45 @@
      "quote": "**Latency:**"
     }
    ]
+  },
+  {
+   "part": "servo-power",
+   "does": "Servo power on and off (head extras).",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 52,
+     "quote": "Servo power on/off"
+    }
+   ]
+  },
+  {
+   "part": "power-button",
+   "does": "A press shows in Events (short or long).",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 260,
+     "quote": "`power_button` with `{\"press\": \"short\" or \"long\"}`"
+    }
+   ]
+  },
+  {
+   "part": "usb",
+   "does": "USB plugged and unplugged show in Events; USB voltage under Sensors.",
+   "sources": [
+    {
+     "repo": "s-w42-eu-raw",
+     "ref": "8d641cda03daa2ea65d24cef03fdabadc6348cd6",
+     "path": "readme.md",
+     "line": 260,
+     "quote": "`usb_plugged` /"
+    }
+   ]
   }
  ]
 }

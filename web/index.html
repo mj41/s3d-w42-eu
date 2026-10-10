@@ -63,7 +63,7 @@ ul.items li:last-child { border-bottom: 0; }
 ul.items li.active { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 3px 0 var(--accent); }
 .name { font-weight: 600; }
 .kind { display: inline-block; font-size: .72rem; padding: 0 6px; border-radius: 8px; margin-left: 6px; color: #fff; vertical-align: 1px; }
-.kind.sensor { background: var(--sensor); } .kind.actuator { background: var(--actuator); }
+.kind.sensor { background: var(--sensor); } .kind.actuator { background: var(--actuator); } .kind.other { background: #5f6b7a; }
 .does { margin: 2px 0; }
 .meta, .src { font-size: .8rem; color: var(--muted); }
 .src a { color: inherit; overflow-wrap: anywhere; }
@@ -73,7 +73,7 @@ aside { min-width: 0; }
 .unplaced { font-size: .8rem; color: var(--muted); }
 .label { font-size: 11px; line-height: 1.2; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
   background: var(--c, var(--sensor)); border: 1px solid var(--c, var(--sensor)); color: #fff; font-weight: 600;
-  margin-left: 8px; pointer-events: auto; cursor: pointer; transition: opacity .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  pointer-events: auto; cursor: pointer; transition: opacity .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .label.focus { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--c, var(--sensor)); z-index: 3; }
 .label.flash { animation: flash .8s; }
 @keyframes flash { from { transform: scale(1.25); } }

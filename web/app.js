@@ -18,8 +18,6 @@ const deg = Math.PI / 180;
 // The scene: the robot in metres (robot.glb's root scales robot3d's millimetres).
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Photo-like: a soft studio round the robot (three.js's RoomEnvironment) lights and reflects in
 // every surface, and a filmic tone curve keeps the light shell from burning out.
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -37,21 +35,8 @@ scene.background = new THREE.Color(css('--panel'));
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.add(new THREE.HemisphereLight(0xffffff, 0xd2d4d8, 0.9)); // light from below too: holes and recesses grey, not black (the owner's photos)
 const key = new THREE.DirectionalLight(0xffffff, 1.6);
-key.position.set(-0.025, 0.2, 0.045); // high above, a little to the front left: a soft shadow under the robot, as on photos (metres)
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-key.shadow.camera.left = key.shadow.camera.bottom = -0.07;
-key.shadow.camera.right = key.shadow.camera.top = 0.07;
-key.shadow.camera.near = 0.01;
-key.shadow.camera.far = 0.3;
-key.shadow.bias = -0.0005;
-key.shadow.radius = 4;
+key.position.set(-0.025, 0.2, 0.045); // high above, a little to the front left (metres); no shadows
 scene.add(key);
-// The ground: only the shadow shows.
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.4), new THREE.ShadowMaterial({ opacity: 0.22 }));
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
 const fill = new THREE.DirectionalLight(0xffffff, 0.3);
 fill.position.set(0.75, 0.25, 0.45);
 scene.add(fill);
@@ -291,6 +276,7 @@ const near = 1.5;
 // actuators oranges, so two of a kind in view still differ.
 const sensorShades = ['#1f6fd0', '#0e8fa8', '#5a4fcf', '#2b4fa0', '#1a9a8a', '#3d8de0', '#4069b8', '#0f6f8f'];
 const actuatorShades = ['#d0611f', '#c23a2b', '#c98a12', '#a8461c', '#e0783a', '#b5521f', '#d84a5a', '#9a6a10'];
+const otherShades = ['#3d8a4a', '#5f6b7a', '#2f7d6b', '#7a6a4a', '#4f7a2f', '#6a5a8a'];
 const markers = []; // {ids, items, obj, label, el, colour, out}
 let parts = [], apps = [], byId = new Map();
 let picked = null; // the app shown
@@ -358,8 +344,8 @@ function addMarkers(robot, screen) {
   for (const { where, items } of groups) {
     const node = robot.getObjectByName(where.area === 'screen' ? 'screen' : where.part);
     if (!node) { console.warn('no part', where.part); continue; }
-    const kind = items.every((p) => p.kind === 'sensor') ? 'sensor' : items.every((p) => p.kind === 'actuator') ? 'actuator' : 'both';
-    const shades = kind === 'actuator' ? actuatorShades : sensorShades;
+    const kind = items.every((p) => p.kind === items[0].kind) ? items[0].kind : 'sensor';
+    const shades = kind === 'actuator' ? actuatorShades : kind === 'other' ? otherShades : sensorShades;
     const n = markers.filter((m) => m.shades === shades).length;
     const hex = shades[n % shades.length];
     const colour = new THREE.Color(hex);
@@ -396,8 +382,8 @@ function addMarkers(robot, screen) {
     el.className = 'label';
     box.append(el);
     const label = new CSS2DObject(box);
-    label.center.set(0, 0.5); // the label starts at the dot
-    label.position.copy(at);
+    label.center.set(0, 0); // placed by spread(), round its shape
+    label.position.copy(obj.matrixAutoUpdate ? obj.position : new THREE.Vector3().setFromMatrixPosition(obj.matrix)); // the shape's centre
     node.add(label);
     el.style.setProperty('--c', hex);
     const m = { ids: items.map((p) => p.id), items, obj, label, el, colour, hex, shades, out, at: new THREE.Vector3().fromArray(where.offset), shown: [] };
@@ -458,27 +444,53 @@ function frameMarkers(now) {
   }
 }
 
-// Labels that would cover each other move down, top to bottom.
-const screenPos = new THREE.Vector3();
+// Labels sit next to their shape, not over it or any other: each shape's box on the screen is
+// found, then each label (top to bottom) takes the first place round its own shape (right, left,
+// above, below, then the corners) clear of every shape and of the labels placed before it; with
+// none clear, the right, moved down until clear of the labels.
+const corner = new THREE.Vector3(), box3 = new THREE.Box3(), screenPos = new THREE.Vector3();
+function screenBox(obj, w, h) {
+  box3.setFromObject(obj);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let k = 0; k < 8; k++) {
+    corner.set(k & 1 ? box3.max.x : box3.min.x, k & 2 ? box3.max.y : box3.min.y, k & 4 ? box3.max.z : box3.min.z).project(camera);
+    const x = (corner.x + 1) / 2 * w, y = (1 - corner.y) / 2 * h;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  return { x0, y0, x1, y1 };
+}
+const hit = (a, b, gap) => a.x0 < b.x1 + gap && b.x0 < a.x1 + gap && a.y0 < b.y1 + gap && b.y0 < a.y1 + gap;
 function spread() {
-  const w = stage.clientWidth, h = stage.clientHeight, placed = [];
+  const w = stage.clientWidth, h = stage.clientHeight, gap = 3;
   const shown = markers.filter((m) => m.label.visible).map((m) => {
     m.label.getWorldPosition(screenPos).project(camera);
-    return { m, x: (screenPos.x + 1) / 2 * w + 8, y: (1 - screenPos.y) / 2 * h, wd: m.el.offsetWidth, ht: m.el.offsetHeight };
-  }).sort((a, b) => a.y - b.y);
+    return { m, ax: (screenPos.x + 1) / 2 * w, ay: (1 - screenPos.y) / 2 * h, wd: m.el.offsetWidth, ht: m.el.offsetHeight, box: screenBox(m.obj, w, h) };
+  }).sort((a, b) => a.box.y0 - b.box.y0);
+  const shapes = shown.map((l) => l.box), placed = [];
+  const inside = (r) => r.x0 >= 4 && r.y0 >= 4 && r.x1 <= w - 4 && r.y1 <= h - 4;
   for (const l of shown) {
-    const dx = Math.min(0, w - 6 - (l.x + l.wd)); // kept inside the stage
-    const x = l.x + dx;
-    let y = l.y;
-    for (let moved = true; moved;) { // until it is clear of every placed label
-      moved = false;
-      for (const p of placed) {
-        if (x < p.x + p.wd + 2 && p.x < x + l.wd + 2 && y < p.y + p.ht + 2 && p.y < y + l.ht + 2) { y = p.y + p.ht + 2; moved = true; }
+    const b = l.box, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, d = 6;
+    const spots = [
+      [b.x1 + d, cy - l.ht / 2], [b.x0 - d - l.wd, cy - l.ht / 2], [cx - l.wd / 2, b.y0 - d - l.ht], [cx - l.wd / 2, b.y1 + d],
+      [b.x1 + d, b.y0 - l.ht], [b.x1 + d, b.y1], [b.x0 - d - l.wd, b.y0 - l.ht], [b.x0 - d - l.wd, b.y1],
+    ];
+    let r = null;
+    for (const [x, y] of spots) {
+      const c = { x0: x, y0: y, x1: x + l.wd, y1: y + l.ht };
+      if (inside(c) && !shapes.some((s) => hit(c, s, 1)) && !placed.some((p) => hit(c, p, gap))) { r = c; break; }
+    }
+    if (!r) { // the right, clamped into the view, moved down until clear of the labels
+      let x = Math.min(Math.max(4, b.x1 + d), w - 4 - l.wd), y = Math.max(4, cy - l.ht / 2);
+      r = { x0: x, y0: y, x1: x + l.wd, y1: y + l.ht };
+      for (let moved = true; moved;) {
+        moved = false;
+        for (const p of placed) if (hit(r, p, gap)) { r = { x0: r.x0, y0: p.y1 + gap, x1: r.x1, y1: p.y1 + gap + l.ht }; moved = true; }
       }
     }
-    l.m.el.style.transform = `translate(${Math.round(dx)}px, ${Math.round(y - l.y)}px)`;
-    placed.push({ ...l, x, y });
+    l.m.el.style.transform = `translate(${Math.round(r.x0 - l.ax)}px, ${Math.round(r.y0 - l.ay)}px)`;
+    placed.push(r);
   }
+  stage.shapeBoxes = shown.map((l) => ({ text: l.m.el.textContent, ...l.box })); // for pagecheck: labels off the shapes
 }
 
 // focus: a part picked in the list (or on its label): checked, its marker turned to the front,
@@ -530,7 +542,8 @@ function item(p, does, srcs) {
   cb.title = 'Show on the robot';
   cb.setAttribute('aria-label', 'Show ' + p.name + ' on the robot');
   cb.addEventListener('click', (e) => e.stopPropagation());
-  cb.addEventListener('change', () => { if (cb.checked) selected.add(p.id); else selected.delete(p.id); updateMarkers(); });
+  const drop = () => { selected.delete(p.id); cb.checked = false; li.classList.remove('active'); if (focused && focused.ids.includes(p.id)) focused = null; updateMarkers(); };
+  cb.addEventListener('change', () => { if (cb.checked) focus(p); else drop(); }); // as a click on the row
   const body = document.createElement('div');
   const head = document.createElement('div');
   const name = document.createElement('span');
@@ -550,7 +563,11 @@ function item(p, does, srcs) {
   if (meta.textContent) body.append(meta);
   body.append(sources(srcs));
   li.append(cb, body);
-  li.addEventListener('click', (e) => { if (!e.target.closest('a')) focus(p); });
+  li.addEventListener('click', (e) => { // a click picks it (checked); a second click on it unchecks it
+    if (e.target.closest('a')) return;
+    if (li.classList.contains('active')) drop();
+    else focus(p);
+  });
   return li;
 }
 function appLinks(a) {
@@ -587,8 +604,8 @@ function render() {
       ul.append(li);
     }
     panel.append(h, ul);
-    for (const kind of ['sensor', 'actuator']) {
-      const h = document.createElement('h2'); h.textContent = kind === 'sensor' ? 'Sensors' : 'Actuators';
+    for (const kind of ['sensor', 'actuator', 'other']) {
+      const h = document.createElement('h2'); h.textContent = { sensor: 'Sensors', actuator: 'Actuators', other: 'Other parts (ports, slots, buttons)' }[kind];
       const ul = document.createElement('ul'); ul.className = 'items';
       for (const p of parts.filter((p) => p.kind === kind)) ul.append(item(p, p.does, p.sources));
       panel.append(h, ul);
@@ -651,7 +668,6 @@ async function main() {
   for (const a of apps) appSelect.add(new Option(a.name, a.id));
   const robot = gltf.scene;
   robot.traverse((o) => {
-    if (o.isMesh && o.name !== 'screen') { o.castShadow = true; o.receiveShadow = true; }
     if (o.isMesh && o.name === 'screen') o.material.toneMapped = false; // the picture as it is
     else if (o.isMesh && o.name === 'base-cover') { // the photo of the bottom carries its own light: shown about as photographed
       o.material.emissive.set(0xffffff);

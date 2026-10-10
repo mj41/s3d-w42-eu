@@ -459,7 +459,9 @@ const labelsJS = `(() => {
 		.map((e) => { const r = e.getBoundingClientRect(); return {text: e.textContent, x: r.left, y: r.top, w: r.width, h: r.height}; });
 	const aside = document.querySelector('aside'), ar = aside.getBoundingClientRect();
 	const wide = [...aside.querySelectorAll('a, .src, .does, .about, .meta')].filter((e) => e.getBoundingClientRect().right > ar.right + 1).map((e) => e.textContent.slice(0, 60));
-	return {labels: ls, asideOverflow: aside.scrollWidth - aside.clientWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth, wide};
+	const st = document.getElementById('stage'), sr = st.getBoundingClientRect();
+	const shapes = (st.shapeBoxes || []).map((b) => ({text: b.text, x: sr.left + b.x0, y: sr.top + b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0}));
+	return {labels: ls, shapes, asideOverflow: aside.scrollWidth - aside.clientWidth, pageOverflow: document.documentElement.scrollWidth - innerWidth, wide};
 })()`
 
 type label struct {
@@ -469,6 +471,7 @@ type label struct {
 
 type layout struct {
 	Labels        []label
+	Shapes        []label // each shown part's outline (its box on the screen), by its label's text
 	AsideOverflow float64
 	PageOverflow  float64
 	Wide          []string
@@ -517,6 +520,7 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	// The labels plain names; no labels overlapping as it turns; nothing overflowing.
 	seen := map[string]bool{} // the labels seen in any frame (only the sides facing the camera show)
 	overlaps := map[string]bool{}
+	overShape := map[string]bool{} // a label over another part's outline
 	var l layout
 	for frame := 0; frame < 10; frame++ {
 		if err := p.Eval(ctx, labelsJS, &l); err != nil {
@@ -524,6 +528,11 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 		}
 		for _, lb := range l.Labels {
 			seen[lb.Text] = true
+			for _, sh := range l.Shapes {
+				if sh.Text != lb.Text && lb.X < sh.X+sh.W-1 && sh.X+1 < lb.X+lb.W && lb.Y < sh.Y+sh.H-1 && sh.Y+1 < lb.Y+lb.H {
+					overShape[fmt.Sprintf("%q over %q", lb.Text, sh.Text)] = true
+				}
+			}
 		}
 		for i, a := range l.Labels {
 			for _, c := range l.Labels[i+1:] {
@@ -543,6 +552,7 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	}
 	report(len(seen) > 0 && len(bad) == 0, "labels plain names: %q%s", keys(seen), listText(" a count:", bad))
 	report(len(overlaps) == 0, "no labels overlap in 10 frames as it turns%s", listText(":", keys(overlaps)))
+	report(len(overShape) == 0, "no label over another part's outline in 10 frames%s", listText(":", keys(overShape)))
 	report(l.AsideOverflow <= 0 && l.PageOverflow <= 0 && len(l.Wide) == 0, "links wrap: the panel overflows by %.0f px, the page by %.0f px%s", l.AsideOverflow, l.PageOverflow, listText(" wider than the panel:", l.Wide))
 
 	// A pick in the list (Camera) turns the front to the camera.
@@ -597,6 +607,19 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	if shot, err := p.screenshot(ctx, nil); err == nil {
 		os.WriteFile(filepath.Join(out, "pagecheck-"+w.name+"-pick.png"), shot, 0o644)
 	}
+	// A second click on the picked row unchecks it; its checkbox picks it again.
+	var again struct {
+		Checked bool
+		Focus   string
+	}
+	p.Eval(ctx, `(() => { document.querySelector('li[data-id="pitch-servo"] .name').click(); return true; })()`, nil)
+	time.Sleep(300 * time.Millisecond)
+	p.Eval(ctx, `({Checked: document.querySelector('li[data-id="pitch-servo"] input').checked})`, &again)
+	unchecked := !again.Checked
+	p.Eval(ctx, `(() => { document.querySelector('li[data-id="pitch-servo"] input').click(); return true; })()`, nil)
+	p.waitFor(ctx, `[...document.querySelectorAll('.label.focus')].some((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 3*time.Second)
+	p.Eval(ctx, `({Checked: document.querySelector('li[data-id="pitch-servo"] input').checked, Focus: (document.querySelector('.label.focus') || {}).textContent || ''})`, &again)
+	report(unchecked && again.Checked && again.Focus == "Head pitch servo", "a second click unchecks the row (%v), its checkbox picks it again: focused %q", unchecked, again.Focus)
 	// A pick of a part on the bottom (the power LED, in Raw data) tilts the view to show it from below.
 	var under struct{ Focus string }
 	p.Eval(ctx, `(() => { location.hash = 'raw'; return true; })()`, nil)
@@ -610,6 +633,24 @@ func checkWidth(b *browser, site, threeDir, out string, w width) (failed int, er
 	}
 	p.Eval(ctx, `(() => { location.hash = 'pet'; return true; })()`, nil)
 	time.Sleep(500 * time.Millisecond)
+
+	// Every entry of Raw data, picked, shows its part on the robot (its label focused, in view).
+	if w.name == "1200" {
+		p.Eval(ctx, `(() => { location.hash = 'raw'; return true; })()`, nil)
+		time.Sleep(500 * time.Millisecond)
+		var ids []string
+		p.Eval(ctx, `[...document.querySelectorAll('#panel li[data-id]')].map((li) => li.dataset.id)`, &ids)
+		var dead []string
+		for _, id := range ids {
+			p.Eval(ctx, `(() => { const n = document.querySelector('li[data-id="`+id+`"] .name'); if (n) n.click(); return true; })()`, nil)
+			if p.waitFor(ctx, `[...document.querySelectorAll('.label.focus')].some((e) => e.offsetParent && getComputedStyle(e.parentElement).display !== 'none')`, 3*time.Second) != nil {
+				dead = append(dead, id)
+			}
+		}
+		report(len(ids) > 20 && len(dead) == 0, "every Raw data entry (%d) shows its part when picked%s", len(ids), listText(" not:", dead))
+		p.Eval(ctx, `(() => { location.hash = 'pet'; return true; })()`, nil)
+		time.Sleep(500 * time.Millisecond)
+	}
 
 	var shown [2]int
 	p.Eval(ctx, `(() => { const b = document.getElementById('markers'); const n = () => [...document.querySelectorAll('.label')].filter((e) => e.textContent && e.offsetParent && getComputedStyle(e.parentElement).display !== 'none').length;

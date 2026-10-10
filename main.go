@@ -188,15 +188,24 @@ func handler() (http.Handler, error) {
 		"base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
 	}, "; ")
 
-	serve := func(body []byte, ct string, maxAge int) http.HandlerFunc {
+	// Every file is checked again on each load (no-cache, with an ETag: unchanged, a 304), so a
+	// release shows at once, never an old robot.glb from a browser's cache.
+	serve := func(body []byte, ct string) http.HandlerFunc {
+		sum := sha256.Sum256(body)
+		etag := `"` + base64.RawURLEncoding.EncodeToString(sum[:12]) + `"`
 		return func(w http.ResponseWriter, r *http.Request) {
 			h := w.Header()
 			h.Set("Content-Type", ct)
-			h.Set("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
+			h.Set("Cache-Control", "no-cache")
+			h.Set("ETag", etag)
 			h.Set("X-Content-Type-Options", "nosniff")
 			if strings.HasPrefix(ct, "text/html") {
 				h.Set("Content-Security-Policy", csp)
 				h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			}
+			if r.Header.Get("If-None-Match") == etag {
+				w.WriteHeader(http.StatusNotModified)
+				return
 			}
 			w.Write(body)
 		}
@@ -206,11 +215,11 @@ func handler() (http.Handler, error) {
 		return b
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", serve(index, "text/html; charset=utf-8", 300))
-	mux.HandleFunc("GET /app.js", serve(read("web/app.js"), "text/javascript; charset=utf-8", 300))
-	mux.HandleFunc("GET /robot.glb", serve(read("web/robot.glb"), "model/gltf-binary", 3600))
-	mux.HandleFunc("GET /data/parts.json", serve(read("data/parts.json"), "application/json", 300))
-	mux.HandleFunc("GET /data/apps.json", serve(appsJSON, "application/json", 300))
+	mux.HandleFunc("GET /{$}", serve(index, "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /app.js", serve(read("web/app.js"), "text/javascript; charset=utf-8"))
+	mux.HandleFunc("GET /robot.glb", serve(read("web/robot.glb"), "model/gltf-binary"))
+	mux.HandleFunc("GET /data/parts.json", serve(read("data/parts.json"), "application/json"))
+	mux.HandleFunc("GET /data/apps.json", serve(appsJSON, "application/json"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 	return mux, nil
 }

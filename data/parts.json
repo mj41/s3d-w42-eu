@@ -1,5 +1,5 @@
 {
- "about": "The robot's sensors and actuators as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own). A where's source may be M5Stack's annotated picture of the robot (StackChan docs): its label quoted. shape: its outline on the robot (mm, on the surface facing out): a circle (r) or a rect (w across, h up, corners r); free: at the offset itself.",
+ "about": "The robot's sensors, actuators and other parts (ports, slots, buttons the firmware does not read; kind other) as Embody Mode exposes them (StackChan firmware, branch embody-mj41). where: a robot3d part and an offset in millimetres in robot3d's rest space (Y up, facing +Z; the part's node in robot.glb); how: exact (it is there), joint (the joint it moves), inside (somewhere in that part), near (the docs say roughly where). No where: the docs do not say where it is. out: from where the marker is seen (a direction at rest; it sits where a ray from outside along it meets the robot's surface; default: out from the yaw axis). area screen: the screen's rectangle, outlined. with: a feature of these parts (no marker of its own). A where's source may be M5Stack's annotated picture of the robot (StackChan docs): its label quoted. shape: its outline on the robot (mm, on the surface facing out): a circle (r) or a rect (w across, h up, corners r); free: at the offset itself.",
  "parts": [
   {
    "id": "touch-screen",
@@ -164,9 +164,9 @@
    "where": {
     "part": "core",
     "offset": [
-     0,
-     43.5,
-     25.85
+     27,
+     50,
+     30.5
     ],
     "how": "inside",
     "out": [
@@ -176,9 +176,9 @@
     ],
     "shape": {
      "kind": "circle",
-     "r": 3
+     "r": 2.4
     },
-    "note": "the IMU sits in the CoreS3 (HARDWARE.md line 21): somewhere in the CoreS3, marked on its left side",
+    "note": "the IMU sits in the CoreS3 (HARDWARE.md line 21): somewhere in the CoreS3, marked on its left side's front",
     "source": {
      "repo": "s-w42-eu-assets",
      "ref": "6b1e7cff65a1977d198b1fc193b43c94b8ba7242",
@@ -202,7 +202,33 @@
      "line": 22,
      "quote": "| Magnetometer (compass) | BMM150 (0x10) on the BMI270's AUX I2C"
     }
-   ]
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     27,
+     50,
+     30.5
+    ],
+    "how": "inside",
+    "out": [
+     1,
+     0,
+     0
+    ],
+    "shape": {
+     "kind": "circle",
+     "r": 2.4
+    },
+    "note": "the BMM150 is on the BMI270's AUX bus, in the CoreS3 (HARDWARE.md line 22): marked with the IMU",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 22,
+     "quote": "BMM150 (0x10) on the BMI270's AUX I2C"
+    }
+   }
   },
   {
    "id": "light",
@@ -428,7 +454,35 @@
      "line": 147,
      "quote": "| NFC | `hal/drivers/ST25R3916`"
     }
-   ]
+   ],
+   "where": {
+    "part": "back-panel",
+    "offset": [
+     8,
+     62,
+     -27
+    ],
+    "how": "near",
+    "out": [
+     0,
+     0,
+     -1
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 14,
+     "h": 8,
+     "r": 2
+    },
+    "note": "the ST25R3916 in the head (HARDWARE.md line 27), marked on the head's main board; where its antenna is (where to hold a card) is not in the docs",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 27,
+     "quote": "NFC reader | ST25R3916 (0x50)"
+    }
+   }
   },
   {
    "id": "battery",
@@ -485,7 +539,35 @@
      "line": 29,
      "quote": "| Battery monitor (body) | INA226 (0x41)"
     }
-   ]
+   ],
+   "where": {
+    "part": "back-panel",
+    "offset": [
+     -8,
+     55,
+     -27
+    ],
+    "how": "near",
+    "out": [
+     0,
+     0,
+     -1
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 14,
+     "h": 10,
+     "r": 2
+    },
+    "note": "the INA226 on the head's main board (\"body\", HARDWARE.md line 29), seen through the open back; its exact place is not in the docs",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 29,
+     "quote": "Battery monitor (body) | INA226 (0x41)"
+    }
+   }
   },
   {
    "id": "usb",
@@ -589,7 +671,35 @@
      "line": 32,
      "quote": "| RTC | BM8563 (0x51)"
     }
-   ]
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     -7.5,
+     70.5,
+     26
+    ],
+    "how": "inside",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 15,
+     "h": 11,
+     "r": 2
+    },
+    "note": "the BM8563 is in the CoreS3 (HARDWARE.md line 32): somewhere in the CoreS3, marked on its top",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 32,
+     "quote": "BM8563 (0x51)"
+    }
+   }
   },
   {
    "id": "chip",
@@ -605,7 +715,35 @@
      "line": 33,
      "quote": "| Chip temperature, Wi-Fi | ESP32-S3"
     }
-   ]
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     -7.5,
+     70.5,
+     26
+    ],
+    "how": "inside",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 15,
+     "h": 11,
+     "r": 2
+    },
+    "note": "the ESP32-S3 is in the CoreS3: marked on its top",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 33,
+     "quote": "| Chip temperature, Wi-Fi | ESP32-S3"
+    }
+   }
   },
   {
    "id": "display",
@@ -863,7 +1001,35 @@
      "line": 137,
      "quote": "| Speaker | binary `0x03` PCM"
     }
-   ]
+   ],
+   "where": {
+    "part": "core",
+    "offset": [
+     27,
+     43.5,
+     23.5
+    ],
+    "how": "near",
+    "out": [
+     1,
+     0,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 8,
+     "h": 32,
+     "r": 2
+    },
+    "note": "the CoreS3's speaker, behind the band of holes on its left side (M5Stack's photos of the CoreS3)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 80,
+     "quote": "left: the vents, a narrow staggered band"
+    }
+   }
   },
   {
    "id": "ir-transmitter",
@@ -966,6 +1132,256 @@
      "path": "readme.md",
      "line": 293,
      "quote": "| `servo_power` | `{\"on\": bool}`"
+    }
+   ],
+   "where": {
+    "part": "back-panel",
+    "offset": [
+     -8,
+     55,
+     -27
+    ],
+    "how": "near",
+    "out": [
+     0,
+     0,
+     -1
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 14,
+     "h": 10,
+     "r": 2
+    },
+    "note": "PY32 pin 0, the body's expander on the head's main board, seen through the open back; its exact place is not in the docs",
+    "source": {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 46,
+     "quote": "Servo power | PY32 pin 0"
+    }
+   }
+  },
+  {
+   "id": "port-a",
+   "name": "Port A (I2C, red)",
+   "kind": "other",
+   "chip": "CoreS3 Grove port A",
+   "does": "A Grove I2C port on the CoreS3's right side; the firmware's laser accessory would use it (GPIO2). Not used by Embody Mode yet.",
+   "where": {
+    "part": "core",
+    "offset": [
+     -27,
+     30,
+     26.25
+    ],
+    "how": "exact",
+    "out": [
+     -1,
+     0,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 5.8,
+     "h": 8.8,
+     "r": 1
+    },
+    "note": "on the CoreS3's right side, below the USB-C (the red Grove port)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 125,
+     "quote": "roundRect(p.Z-cz, p.Y+13.5, 2.5, 4, 0.4)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 49,
+     "quote": "CoreS3 Port A/B/C"
+    },
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 47,
+     "quote": "GPIO2 = CoreS3 **Port A**"
+    }
+   ]
+  },
+  {
+   "id": "port-b",
+   "name": "Port B (GPIO, black)",
+   "kind": "other",
+   "chip": "Grove port B",
+   "does": "A Grove GPIO port on the head's top. Not used by Embody Mode yet.",
+   "where": {
+    "part": "top-board",
+    "offset": [
+     -10.3,
+     70.45,
+     15.55
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 11.4,
+     "h": 5.1,
+     "r": 1
+    },
+    "note": "on the head's top behind the CoreS3, on the robot's right (M5Stack's photos: GPIO PORT.B)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 196,
+     "quote": "box(p.X, p.Z, -16.0, 13.0, -4.6, 18.1)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 49,
+     "quote": "CoreS3 Port A/B/C"
+    }
+   ]
+  },
+  {
+   "id": "port-c",
+   "name": "Port C (UART, teal)",
+   "kind": "other",
+   "chip": "Grove port C",
+   "does": "A Grove UART port on the head's top. Not used by Embody Mode yet.",
+   "where": {
+    "part": "top-board",
+    "offset": [
+     11.25,
+     70.45,
+     15.55
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 11.5,
+     "h": 5.1,
+     "r": 1
+    },
+    "note": "on the head's top behind the CoreS3, on the robot's left (M5Stack's photos: UART PORT.C)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 191,
+     "quote": "box(p.X, p.Z, 5.5, 13.0, 17.0, 18.1)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 49,
+     "quote": "CoreS3 Port A/B/C"
+    }
+   ]
+  },
+  {
+   "id": "microsd",
+   "name": "microSD slot",
+   "kind": "other",
+   "chip": "microSD",
+   "does": "A microSD card slot on the CoreS3. Not used yet (designed: per-app folders next to the internal store).",
+   "where": {
+    "part": "core",
+    "offset": [
+     -6.5,
+     16.5,
+     25.85
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     -1,
+     0
+    ],
+    "shape": {
+     "kind": "rect",
+     "w": 14,
+     "h": 2.4,
+     "r": 1
+    },
+    "note": "on the CoreS3's bottom, at the front (M5Stack's photo of the bottom)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 96,
+     "quote": "box(p.X, p.Z, -13, -0.5, 0, 0.5)"
+    }
+   },
+   "sources": [
+    {
+     "repo": "StackChan",
+     "ref": "39fff4421d8a24b376df4003ca8509a60919dbcf",
+     "path": "firmware/main/apps/app_embody_mode/HARDWARE.md",
+     "line": 48,
+     "quote": "| microSD | slot | not used"
+    }
+   ]
+  },
+  {
+   "id": "reboot-button",
+   "name": "Reboot button",
+   "kind": "other",
+   "chip": "CoreS3 reset",
+   "does": "Press: reboot; held 3 s: download mode for flashing (the green LED on). Not read by the firmware.",
+   "where": {
+    "part": "core",
+    "offset": [
+     14.2,
+     16.5,
+     27.3
+    ],
+    "how": "exact",
+    "out": [
+     0,
+     -1,
+     0
+    ],
+    "shape": {
+     "kind": "circle",
+     "r": 3.2
+    },
+    "note": "on the CoreS3's bottom, on the robot's left (M5Stack's photo of the bottom)",
+    "source": {
+     "repo": "s-w42-eu-assets",
+     "ref": "6e0e38b607c0129a64d2491ffb62cb797508c1c6",
+     "path": "robot3d/shade.go",
+     "line": 103,
+     "quote": "math.Hypot(p.X-14.2, p.Z-1.45)"
+    }
+   },
+   "sources": [
+    {
+     "url": "https://docs.m5stack.com/en/StackChan",
+     "quote": "PRESS: REBOOT HOLD 3S: ENTER DOWNLOAD MODE"
     }
    ]
   }

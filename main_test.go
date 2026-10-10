@@ -77,7 +77,7 @@ func TestParts(t *testing.T) {
 			t.Errorf("%s: twice", e.ID)
 		}
 		seen[e.ID] = true
-		if e.Kind != "sensor" && e.Kind != "actuator" {
+		if e.Kind != "sensor" && e.Kind != "actuator" && e.Kind != "other" {
 			t.Errorf("%s: kind %q", e.ID, e.Kind)
 		}
 		if len(e.Sources) == 0 {
@@ -300,5 +300,26 @@ func TestServe(t *testing.T) {
 				t.Error("robot.glb: not a glTF binary")
 			}
 		}
+	}
+}
+
+// Each file is checked again on each load (no-cache) and, unchanged, answered with a 304.
+func TestServeRevalidates(t *testing.T) {
+	h, err := handler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/robot.glb", nil))
+	etag := rec.Header().Get("ETag")
+	if rec.Code != 200 || rec.Header().Get("Cache-Control") != "no-cache" || etag == "" {
+		t.Fatalf("robot.glb: %d, Cache-Control %q, ETag %q", rec.Code, rec.Header().Get("Cache-Control"), etag)
+	}
+	req := httptest.NewRequest("GET", "/robot.glb", nil)
+	req.Header.Set("If-None-Match", etag)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotModified || rec.Body.Len() != 0 {
+		t.Errorf("robot.glb again with its ETag: %d, %d bytes", rec.Code, rec.Body.Len())
 	}
 }
